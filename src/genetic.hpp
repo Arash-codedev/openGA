@@ -73,14 +73,14 @@ enum class StopReason
 	UserRequest
 };
 
-class GA_cronometer
+class Chronometer
 {
 protected:
 	timespec time_start, time_stop;
 	bool initialized;
 public:
 
-	GA_cronometer() : 
+	Chronometer() : 
 			initialized(false)
 	{
 	}
@@ -94,7 +94,7 @@ public:
 	double toc()
 	{
 		if(!initialized)
-			throw std::runtime_error("GA_cronometer is not initialized!");
+			throw std::runtime_error("Chronometer is not initialized!");
 		clock_gettime(CLOCK_MONOTONIC, &time_stop);
 		long diff_sec=time_stop.tv_sec-time_start.tv_sec;
 		long diff_nsec=time_stop.tv_nsec-time_start.tv_nsec;
@@ -116,6 +116,7 @@ private:
 	arma::mat extreme_objectives;	// for multi-objective
 	arma::vec scalarized_objectives_min;	// for multi-objective
 	std::vector<arma::vec> reference_vectors;
+	double shrink_scale;
 
 public:
 
@@ -128,7 +129,7 @@ public:
 	GA_MODE problem_mode;
 	uint population;
 	double crossover_fraction;
-	double mutation_fraction;
+	double mutation_rate;
 	bool verbose;
 	int generation_step;
 	int elite_count;
@@ -140,6 +141,7 @@ public:
 	uint reference_vector_divisions;
 	bool enable_reference_vectors;
 	bool multi_threading;
+	bool dynamic_threading;
 	int N_threads;
 	bool user_request_stop;
 	long idle_delay_us;
@@ -148,14 +150,15 @@ public:
 	std::function<double(const thisChromosomeType&)> calculate_SO_total_fitness;
 	std::function<arma::vec(thisChromosomeType&)> calculate_MO_objectives;
 	std::function<arma::vec(const arma::vec&)> distribution_objective_reductions;
-	std::function<void(GeneType&,std::function<double(void)> rand)> map_genes;
+	std::function<void(GeneType&,const std::function<double(void)> &rand)> init_genes;
 	std::function<bool(const GeneType&,MiddleCostType&)> eval_genes;
 	std::function<bool(const GeneType&,MiddleCostType&,const thisGenerationType&)> eval_genes_IGA;
-	std::function<GeneType(const GeneType&,std::function<double(void)> rand)> mutate;
-	std::function<GeneType(const GeneType&,const GeneType&,std::function<double(void)> rand)> crossover;
+	std::function<GeneType(const GeneType&,const std::function<double(void)> &rand,double shrink_scale)> mutate;
+	std::function<GeneType(const GeneType&,const GeneType&,const std::function<double(void)> &rand)> crossover;
 	std::function<void(int,const thisGenerationType&,const GeneType&)> SO_report_generation;
 	std::function<void(int,const thisGenerationType&,const std::vector<uint>&)> MO_report_generation;
 	std::function<void(void)> custom_refresh;
+	std::function<double(int)> set_shrink_scale=[](int n){return (n<=5?1.0:1.0/sqrt(n-5+1));};
 
 	std::vector<thisGenSOAbs> generations_so_abs;
 	thisGenerationType last_generation;
@@ -167,7 +170,7 @@ public:
 		problem_mode(GA_MODE::SOGA),
 		population(50),
 		crossover_fraction(0.7),
-		mutation_fraction(0.3),
+		mutation_rate(0.1),
 		verbose(false),
 		generation_step(-1),
 		elite_count(5),
@@ -179,6 +182,7 @@ public:
 		reference_vector_divisions(10),
 		enable_reference_vectors(true),
 		multi_threading(true),
+		dynamic_threading(true),
 		N_threads(std::thread::hardware_concurrency()),
 		user_request_stop(false),
 		idle_delay_us(1000),
@@ -186,7 +190,7 @@ public:
 		calculate_SO_total_fitness(nullptr),
 		calculate_MO_objectives(nullptr),
 		distribution_objective_reductions(nullptr),
-		map_genes(nullptr),
+		init_genes(nullptr),
 		eval_genes(nullptr),
 		eval_genes_IGA(nullptr),
 		mutate(nullptr),
@@ -207,6 +211,7 @@ public:
 	void solve_init()
 	{
 		check_settings();
+		shrink_scale=1.0;
 		average_stall_count=0;
 		best_stall_count=0;
 		generation_step=-1;
@@ -218,10 +223,10 @@ public:
 			std::cout<<"population: "<<population<<std::endl;
 			std::cout<<"elite_count: "<<elite_count<<std::endl;
 			std::cout<<"crossover_fraction: "<<crossover_fraction<<std::endl;
-			std::cout<<"mutation_fraction: "<<mutation_fraction<<std::endl;
+			std::cout<<"mutation_rate: "<<mutation_rate<<std::endl;
 			std::cout<<"**************************************"<<std::endl;
 		}
-		GA_cronometer timer;
+		Chronometer timer;
 		timer.tic();
 
 		thisGenerationType generation0;
@@ -247,9 +252,10 @@ public:
 
 	StopReason solve_next_generation()
 	{
-		GA_cronometer timer;
+		Chronometer timer;
 		timer.tic();
 		generation_step++;
+		shrink_scale=set_shrink_scale(generation_step);
 		thisGenerationType new_generation;
 		transfer(new_generation);
 		crossover_and_mutation(new_generation);
@@ -441,8 +447,8 @@ protected:
 			}
 		}
 
-		if(map_genes==nullptr)
-			throw std::runtime_error("map_genes is not adjusted.");
+		if(init_genes==nullptr)
+			throw std::runtime_error("init_genes is not adjusted.");
 		if(mutate==nullptr)
 			throw std::runtime_error("mutate is not adjusted.");
 		if(crossover==nullptr)
@@ -746,6 +752,35 @@ protected:
 			rank_population_MO(gen);
 	}
 
+	void quicksort_indices_SO(std::vector<int> &array_indices,const thisGenerationType &gen,int left ,int right)
+	{
+		if(left<right)
+		{
+			int middle;
+			double x=gen.chromosomes[array_indices[left]].total_cost;
+			int l=left;
+			int r=right;
+			while(l<r)
+			{
+				while((gen.chromosomes[array_indices[l]].total_cost<=x)&&(l<right)) l++ ;
+				while((gen.chromosomes[array_indices[r]].total_cost>x)&&(r>=left)) r-- ;
+				if(l<r)
+				{
+					int temp = array_indices[l];
+					array_indices[l]=array_indices[r];
+					array_indices[r]=temp ;
+				}
+			}
+			middle=r;
+				int temp=array_indices[left];
+				array_indices[left]=array_indices[middle];
+				array_indices[middle]=temp;
+
+			quicksort_indices_SO(array_indices,gen,left,middle-1);
+			quicksort_indices_SO(array_indices,gen,middle+1,right);
+		}
+	}
+
 	void rank_population_SO(thisGenerationType &gen)
 	{
 		int N=int(gen.chromosomes.size());
@@ -753,13 +788,8 @@ protected:
 		gen.sorted_indices.reserve(N);
 		for(int i=0;i<N;i++)
 			gen.sorted_indices.push_back(i);
-		std::sort(gen.sorted_indices.begin(), gen.sorted_indices.end(),
-			[=](const int & a, const int & b) -> bool
-			{
-				return
-					gen.chromosomes[a].total_cost <
-					gen.chromosomes[b].total_cost;
-			});
+
+		quicksort_indices_SO(gen.sorted_indices,gen,0,gen.sorted_indices.size()-1);
 
 		std::vector<int> ranks;
 		ranks.assign(gen.chromosomes.size(),0);
@@ -917,6 +947,19 @@ protected:
 		}
 	}
 
+	void init_population_range(
+		thisGenerationType *p_generation0,
+		int index_begin,
+		int index_end,
+		uint *attemps,
+		int *active_thread)
+	{
+		int dummy;
+		for(int i=index_begin;i<=index_end;i++)
+			init_population_single(p_generation0,i,attemps,&dummy);
+		*active_thread=0; // false
+	}
+
 	void init_population_single(
 		thisGenerationType *p_generation0,
 		int index,
@@ -927,7 +970,7 @@ protected:
 		while(!accepted)
 		{
 			thisChromosomeType X;
-			map_genes(X.genes,[this](){return rand();});
+			init_genes(X.genes,[this](){return rand();});
 			if(is_interactive())
 			{
 				if(eval_genes_IGA(X.genes,X.middle_costs,*p_generation0))
@@ -957,7 +1000,8 @@ protected:
 	{
 		if(custom_refresh!=nullptr)
 			custom_refresh();
-		boost::this_thread::sleep(boost::posix_time::microseconds(idle_delay_us));
+		if(idle_delay_us>0)
+			boost::this_thread::sleep(boost::posix_time::microseconds(idle_delay_us));
 	}
 
 	void init_population(thisGenerationType &generation0)
@@ -987,36 +1031,71 @@ protected:
 				if(th.joinable())
 					th.join();
 
-			uint x_index=0;
-			while(x_index<population && !user_request_stop)
+			if(dynamic_threading)
 			{
-				int free_thread=-1;
-				for(int i=0;i<N_threads && free_thread<0;i++)
+				uint x_index=0;
+				while(x_index<population && !user_request_stop)
 				{
-					if(!active_threads[i])
+					int free_thread=-1;
+					for(int i=0;i<N_threads && free_thread<0;i++)
 					{
-						free_thread=i;
-						if(thread_pool[free_thread].joinable())
-							thread_pool[free_thread].join();
+						if(!active_threads[i])
+						{
+							free_thread=i;
+							if(thread_pool[free_thread].joinable())
+								thread_pool[free_thread].join();
+						}
 					}
-				}
-				if(free_thread>-1)
+					if(free_thread>-1)
+					{
+						active_threads[free_thread]=1;
+						thread_pool[free_thread]=
+							std::thread(
+								&std::remove_reference<decltype(*this)>::type::init_population_single,
+								this,
+								&generation0,
+								int(x_index),
+								&attempts[free_thread],
+								&(active_threads[free_thread])
+									);
+						x_index++;
+					}
+					else
+						idle();
+				} // while
+			} // endif: dynamic threading
+			else
+			{// on static threading
+				int x_index_start=0;
+				int x_index_end=0;
+				int pop_chunk=population/N_threads;
+				pop_chunk=std::max(pop_chunk,1);
+				for(int i=0;i<N_threads;i++)
 				{
-					active_threads[free_thread]=1;
-					thread_pool[free_thread]=
+					x_index_end=x_index_start+pop_chunk;
+					if(i+1==N_threads) // last chunk
+						x_index_end=population-1;
+					else
+						x_index_end=std::min(x_index_end,int(population)-1);
+
+					if(x_index_end>=x_index_start)
+					{
+						active_threads[i]=1;
+						thread_pool[i]=
 						std::thread(
-							&std::remove_reference<decltype(*this)>::type::init_population_single,
+							&std::remove_reference<decltype(*this)>::type::init_population_range,
 							this,
 							&generation0,
-							int(x_index),
-							&attempts[free_thread],
-							&(active_threads[free_thread])
+							x_index_start,
+							x_index_end,
+							&attempts[i],
+							&(active_threads[i])
 								);
-					x_index++;
+					}
+					x_index_start=x_index_end+1;
 				}
-				else
-					idle();
-			} // while
+			} // endif: static threading
+
 			bool all_tasks_finished;
 			do
 			{
@@ -1059,51 +1138,48 @@ protected:
 		return position;
 	}
 
+	void crossover_and_mutation_range(
+		thisGenerationType *p_new_generation,
+		uint pop_previous_size,
+		int x_index_begin,
+		int x_index_end,
+		int *active_thread)
+	{
+		int dummy;
+		for(int i=x_index_begin;i<=x_index_end;i++)
+			crossover_and_mutation_single(p_new_generation,pop_previous_size,i,&dummy);
+		*active_thread=0; // false
+	}
+
 	void crossover_and_mutation_single(
 		thisGenerationType *p_new_generation,
 		uint pop_previous_size,
 		int index,
 		int *active_thread)
 	{
-		enum class Action{mutation,crossover} action;
 
-		if(rand()<mutation_fraction/(crossover_fraction+mutation_fraction))
-		{
-			action=Action::mutation;
-			if(verbose)
-				std::cout<<"Action: mutation"<<std::endl;
-		}
-		else
-		{
-			action=Action::crossover;
-			if(verbose)
-				std::cout<<"Action: crossover"<<std::endl;
-		}
+		if(verbose)
+			std::cout<<"Action: crossover"<<std::endl;
 
 		bool successful=false;
 		while(!successful)
 		{
 			thisChromosomeType X;
 
-			if(action==Action::mutation)
+			int pidx_c1=select_parent(last_generation);
+			int pidx_c2=select_parent(last_generation);
+			if(pidx_c1==pidx_c2)
+				continue ;
+			if(verbose)
+				std::cout<<"Crossover of chromosomes "<<pidx_c1<<","<<pidx_c2<<std::endl;
+			GeneType Xp1=last_generation.chromosomes[pidx_c1].genes;
+			GeneType Xp2=last_generation.chromosomes[pidx_c2].genes;
+			X.genes=crossover(Xp1,Xp2,[this](){return rand();});
+			if(rand()<=mutation_rate)
 			{
-				int pidx=select_parent(last_generation);
 				if(verbose)
-					std::cout<<"Mutation of chromosome "<<pidx<<std::endl;
-				GeneType X_base=last_generation.chromosomes[pidx].genes;
-				X.genes=mutate(X_base,[this](){return rand();});
-			}
-			else
-			{
-				int pidx1=select_parent(last_generation);
-				int pidx2=select_parent(last_generation);
-				if(pidx1==pidx2)
-					continue ;
-				if(verbose)
-					std::cout<<"Crossover of chromosomes "<<pidx1<<","<<pidx2<<std::endl;
-				GeneType Xp1=last_generation.chromosomes[pidx1].genes;
-				GeneType Xp2=last_generation.chromosomes[pidx2].genes;
-				X.genes=crossover(Xp1,Xp2,[this](){return rand();});
+					std::cout<<"Mutation of chromosome "<<std::endl;
+				X.genes=mutate(X.genes,[this](){return rand();},shrink_scale);
 			}
 			if(is_interactive())
 			{
@@ -1135,11 +1211,11 @@ protected:
 
 		if(crossover_fraction<=0.0 || crossover_fraction>1.0)
 			throw std::runtime_error("Wrong crossover fractoin");
-		if(mutation_fraction<=0.0 || mutation_fraction>1.0)
-			throw std::runtime_error("Wrong mutation fractoin");
+		if(mutation_rate<0.0 || mutation_rate>1.0)
+			throw std::runtime_error("Wrong mutation rate");
 		if(generation_step<=0)
 			return ;
-		uint N_add=uint(std::round(double(population)*(crossover_fraction+mutation_fraction)));
+		uint N_add=uint(std::round(double(population)*(crossover_fraction)));
 		uint pop_previous_size=uint(new_generation.chromosomes.size());
 		if(is_interactive())
 		{
@@ -1167,36 +1243,71 @@ protected:
 				if(th.joinable())
 					th.join();
 
-			uint x_index=0;
-			while(x_index<N_add && !user_request_stop)
+			if(dynamic_threading)
 			{
-				int free_thread=-1;
-				for(int i=0;i<N_threads && free_thread<0;i++)
+				uint x_index=0;
+				while(x_index<N_add && !user_request_stop)
 				{
-					if(!active_threads[i])
+					int free_thread=-1;
+					for(int i=0;i<N_threads && free_thread<0;i++)
 					{
-						free_thread=i;
-						if(thread_pool[free_thread].joinable())
-							thread_pool[free_thread].join();
+						if(!active_threads[i])
+						{
+							free_thread=i;
+							if(thread_pool[free_thread].joinable())
+								thread_pool[free_thread].join();
+						}
 					}
+					if(free_thread>-1)
+					{
+						active_threads[free_thread]=1;
+						thread_pool[free_thread]=
+							std::thread(
+								&std::remove_reference<decltype(*this)>::type::crossover_and_mutation_single,
+								this,
+								&new_generation,
+								pop_previous_size,
+								int(x_index),
+								&(active_threads[free_thread])
+									);
+						x_index++;
+					}
+					else
+						idle();
 				}
-				if(free_thread>-1)
+			}// endif: dynamic threading
+			else
+			{// on static threading
+				int x_index_start=0;
+				int x_index_end=0;
+				int pop_chunk=N_add/N_threads;
+				pop_chunk=std::max(pop_chunk,1);
+				for(int i=0;i<N_threads;i++)
 				{
-					active_threads[free_thread]=1;
-					thread_pool[free_thread]=
-						std::thread(
-							&std::remove_reference<decltype(*this)>::type::crossover_and_mutation_single,
-							this,
-							&new_generation,
-							pop_previous_size,
-							int(x_index),
-							&(active_threads[free_thread])
-								);
-					x_index++;
+					x_index_end=x_index_start+pop_chunk;
+					if(i+1==N_threads) // last chunk
+						x_index_end=N_add-1;
+					else
+						x_index_end=std::min(x_index_end,int(N_add)-1);
+
+					if(x_index_end>=x_index_start)
+					{
+						active_threads[i]=1;
+
+						thread_pool[i]=
+							std::thread(
+								&std::remove_reference<decltype(*this)>::type::crossover_and_mutation_range,
+								this,
+								&new_generation,
+								pop_previous_size,
+								x_index_start,
+								x_index_end,
+								&(active_threads[i])
+									);
+					}
+					x_index_start=x_index_end+1;
 				}
-				else
-					idle();
-			}
+			}// endif: static threading
 
 			bool all_tasks_finished;
 			do

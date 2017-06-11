@@ -1,2 +1,5 @@
 doc/
-bin/*.
+doc-diagram/
+doc-video/
+bin/*.*
+
