@@ -789,7 +789,7 @@ protected:
 		for(int i=0;i<N;i++)
 			gen.sorted_indices.push_back(i);
 
-		quicksort_indices_SO(gen.sorted_indices,gen,0,gen.sorted_indices.size()-1);
+		quicksort_indices_SO(gen.sorted_indices,gen,0,int(gen.sorted_indices.size())-1);
 
 		std::vector<int> ranks;
 		ranks.assign(gen.chromosomes.size(),0);
