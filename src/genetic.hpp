@@ -5,10 +5,10 @@
 #include <vector>
 #include <random>
 #include <chrono>
-#include <armadillo>
+#include <armadillo> // http://arma.sourceforge.net/download.html
 #include <thread>
+#include <boost/thread/thread.hpp> // http://www.boost.org/users/download/
 #include <boost/date_time/posix_time/posix_time.hpp>
-#include <boost/thread/thread.hpp>
 #include <ctime>
 #include <string>
 #include <iostream>
