@@ -3,6 +3,7 @@
 
 #include <string>
 #include "genetic.hpp"
+#include <fstream>
 
 struct MyGenes
 {

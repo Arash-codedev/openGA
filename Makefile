@@ -4,13 +4,12 @@
 
 CXX:=g++
 DEBUG_FLAG:= -g -O3
-RELESE_FLAG:= -O3 -s -DNDEBUG -DARMA_NO_DEBUG
+RELESE_FLAG:= -O3 -s -DNDEBUG
 CURRENT_FLAGS:= $(RELESE_FLAG)
 CURRENT_FLAGS += -std=c++11 -pthread -I./src
 BIN=./bin
 
 LIBS:= -lboost_system -lboost_thread -lboost_chrono
-LIBS+= -larmadillo
 G_LIBS:= -lGL -lGLU -lglut -lGLEW -lSDL -lSDL2main -lSDL2
 
 all:
@@ -40,7 +39,7 @@ ex_mo1:
 	$(BIN)/example_mo1
 
 ex_mo_dtlz2:
-	$(CXX) $(CURRENT_FLAGS) examples/mo-dtlz2/mo-dtlz2.cpp -o $(BIN)/example_mo-dtlz2 $(LIBS) $(G_LIBS)
+	$(CXX) $(CURRENT_FLAGS) examples/mo-dtlz2/mo-dtlz2.cpp -o $(BIN)/example_mo-dtlz2 $(LIBS)
 	@echo "-----------------------------------------------"
 	$(BIN)/example_mo-dtlz2
 

@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include "genetic.hpp"
+#include <fstream>
 
 struct MyGenes
 {

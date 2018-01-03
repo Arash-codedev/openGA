@@ -91,7 +91,7 @@ MyGenes crossover(
 	return X_new;
 }
 
-arma::vec calculate_MO_objectives(const GA_Type::thisChromosomeType &X)
+std::vector<double> calculate_MO_objectives(const GA_Type::thisChromosomeType &X)
 {
 	return {
 		X.middle_costs.cost_A,
@@ -99,7 +99,7 @@ arma::vec calculate_MO_objectives(const GA_Type::thisChromosomeType &X)
 	};
 }
 
-arma::vec distribution_objective_reductions(const arma::vec &objs)
+std::vector<double> distribution_objective_reductions(const std::vector<double> &objs)
 {
 	return objs;
 }

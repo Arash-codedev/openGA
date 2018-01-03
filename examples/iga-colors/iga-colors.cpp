@@ -4,6 +4,7 @@
 #include <string>
 #include "genetic.hpp"
 #include "gui.hpp"
+#include <fstream>
 
 struct MyGenes
 {
@@ -96,13 +97,9 @@ void calculate_IGA_total_fitness(GA_Type::thisGenerationType &g)
 		gui_subject_B=X.middle_costs.B;
 		refresh_gui();
 		refresh_gui();
-		refresh_gui();
-		refresh_gui();
-		refresh_gui();
-		std::cout<<"How much do you like this ("<<X.genes.to_string()<<") blue color (0-100%%)? ";
+		std::cout<<"How much do you like this ("<<X.genes.to_string()<<") blue color (0-100%)? ";
 		std::cin>>X.middle_costs.cost_user_score;
 		X.total_cost=100.0-X.middle_costs.cost_user_score;
-		// g.chromosomes[i].total_cost=100.0-g.chromosomes[i].middle_costs.cost_user_score;
 	}
 }
 

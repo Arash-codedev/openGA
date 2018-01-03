@@ -5,14 +5,14 @@
 #include <vector>
 #include <random>
 #include <chrono>
-#include <armadillo> // http://arma.sourceforge.net/download.html
 #include <thread>
-#include <boost/thread/thread.hpp> // http://www.boost.org/users/download/
-#include <boost/date_time/posix_time/posix_time.hpp>
 #include <ctime>
 #include <string>
 #include <iostream>
 #include <stdexcept>
+#include <assert.h>
+#include <limits>
+#include <algorithm>
 
 #ifndef NS_EA_BEGIN
 #define NS_EA_BEGIN namespace EA {
@@ -34,7 +34,7 @@ struct ChromosomeType
 	GeneType genes;
 	MiddleCostType middle_costs; 	// individual costs
 	double total_cost;				// for single objective
-	arma::vec objectives;			// for multi-objective
+	std::vector<double> objectives;	// for multi-objective
 };
 
 template<typename GeneType,typename MiddleCostType>
@@ -63,6 +63,136 @@ struct GenerationType_SO_abstract
 	{
 	}
 };
+
+class Matrix
+{
+	std::vector<double> data;
+	uint n_rows,n_cols;
+public:
+
+	Matrix():
+		n_rows(0),
+		n_cols(0),
+		data()
+	{
+	}
+
+	Matrix(uint n_rows,uint n_cols):
+		n_rows(n_rows),
+		n_cols(n_cols),
+		data(n_rows*n_cols)
+	{
+	}
+
+	void zeros()
+	{
+		std::fill(data.begin(), data.end(), 0);
+	}
+
+	void zeros(uint rows,uint cols)
+	{
+		n_rows=rows;
+		n_cols=cols;
+		data.assign(rows*cols,0);
+	}
+
+	bool empty()
+	{
+		return (!n_rows)||(!n_cols);
+	}
+
+	uint get_n_rows() const { return n_rows; }
+	uint get_n_cols() const { return n_cols; }
+
+	void clear()
+	{
+		n_rows=0;
+		n_cols=0;
+		data.clear();
+	}
+
+	void set_col(
+		uint col_idx,
+		const std::vector<double> &col_vector)
+	{
+		assert(col_vector.size()==n_rows && "Assigned column vector size mismatch.");
+		for(uint i=0;i<n_rows;i++)
+			(*this)(i,col_idx)=col_vector[i];
+	}
+
+	void set_row(
+		uint row_idx,
+		const std::vector<double> &row_vector)
+	{
+		assert(row_vector.size()==n_cols && "Assigned row vector size mismatch.");
+		for(uint i=0;i<n_cols;i++)
+			(*this)(row_idx,i)=row_vector[i];
+	}
+
+	void get_col(
+		uint col_idx,
+		std::vector<double> &col_vector) const
+	{
+		col_vector.resize(n_rows);
+		for(uint i=0;i<n_rows;i++)
+			col_vector[i]=(*this)(i,col_idx);
+	}
+
+	void get_row(
+		uint row_idx,
+		std::vector<double> &row_vector) const
+	{
+		row_vector.resize(n_cols);
+		for(uint i=0;i<n_cols;i++)
+			row_vector[i]=(*this)(row_idx,i);
+	}
+
+	void operator=(const std::vector<std::vector<double>> &A)
+	{
+
+		int A_rows=A.size();
+		int A_cols=0;
+		if(A_rows>0)
+			A_cols=A[0].size();
+		n_rows=A_rows;
+		n_cols=A_cols;
+		if(n_rows>0 && n_cols>0)
+		{
+			data.resize(n_rows*n_cols);
+			for(int i=0;i<n_rows;i++)
+			{
+				assert(A[i].size()==A_cols && "Vector of vector does not have a constant row size! A21654616");
+				for(int j=0;j<n_cols;j++)
+					(*this)(i,j)=A[i][j];
+			}
+		}
+		else
+			data.clear();			
+	}
+
+	void print()
+	{
+		for(int i=0;i<n_rows;i++)
+		{
+			for(int j=0;j<n_cols;j++)
+				std::cout<<"\t"<<(*this)(i,j);
+			
+			std::cout<<std::endl;
+		}
+		data.clear();
+	}
+
+	inline double& operator()(uint row,uint col) {return data[row*n_cols+col];}
+	inline double  operator()(uint row,uint col) const {return data[row*n_cols+col];}
+};
+
+double norm2(const std::vector<double> &x_vec)
+{
+	double sum=0.0;
+	for(double e:x_vec)
+		sum+=e*e;
+	return sqrt(sum);
+}
 
 enum class StopReason
 {
@@ -112,10 +242,10 @@ private:
 	std::uniform_real_distribution<double> unif_dist;
 	int average_stall_count;
 	int best_stall_count;
-	arma::vec ideal_objectives;		// for multi-objective
-	arma::mat extreme_objectives;	// for multi-objective
-	arma::vec scalarized_objectives_min;	// for multi-objective
-	std::vector<arma::vec> reference_vectors;
+	std::vector<double> ideal_objectives;		// for multi-objective
+	Matrix extreme_objectives;	// for multi-objective
+	std::vector<double> scalarized_objectives_min;	// for multi-objective
+	Matrix reference_vectors;
 	double shrink_scale;
 
 public:
@@ -148,8 +278,8 @@ public:
 
 	std::function<void(thisGenerationType&)> calculate_IGA_total_fitness;
 	std::function<double(const thisChromosomeType&)> calculate_SO_total_fitness;
-	std::function<arma::vec(thisChromosomeType&)> calculate_MO_objectives;
-	std::function<arma::vec(const arma::vec&)> distribution_objective_reductions;
+	std::function<std::vector<double>(thisChromosomeType&)> calculate_MO_objectives;
+	std::function<std::vector<double>(const std::vector<double>&)> distribution_objective_reductions;
 	std::function<void(GeneType&,const std::function<double(void)> &rand)> init_genes;
 	std::function<bool(const GeneType&,MiddleCostType&)> eval_genes;
 	std::function<bool(const GeneType&,MiddleCostType&,const thisGenerationType&)> eval_genes_IGA;
@@ -493,13 +623,13 @@ protected:
 			throw std::runtime_error("Wrong code A0812473247.");
 		if(reset)
 			ideal_objectives=distribution_objective_reductions(g.chromosomes[0].objectives);
-		uint N_r_objectives=uint(ideal_objectives.n_rows);
+		uint N_r_objectives=ideal_objectives.size();
 		for(thisChromosomeType x:g.chromosomes)
 		{
-			arma::vec obj_reduced=distribution_objective_reductions(x.objectives);
+			std::vector<double> obj_reduced=distribution_objective_reductions(x.objectives);
 			for(uint i=0;i<N_r_objectives;i++)
-				if(obj_reduced(i)<ideal_objectives(i))
-					ideal_objectives(i)=obj_reduced(i);
+				if(obj_reduced[i]<ideal_objectives[i])
+					ideal_objectives[i]=obj_reduced[i];
 		}
 	}
 
@@ -512,17 +642,22 @@ protected:
 			return ;
 		}
 		g2.chromosomes.clear();
-		std::vector<arma::vec> zb_objectives;
-		for(thisChromosomeType x:g.chromosomes)
-			zb_objectives.push_back(distribution_objective_reductions(x.objectives)-ideal_objectives);
-		scalarize_objectives(zb_objectives);
-		arma::vec intercepts=build_hyperplane_intercepts();
-		std::vector<arma::vec> norm_objectives;
-		norm_objectives.reserve(g.chromosomes.size());
-		for(uint i=0;i<g.chromosomes.size();i++)
+		const int N_robj=distribution_objective_reductions(g.chromosomes[0].objectives).size();
+		const int N_chromosomes=g.chromosomes.size();
+		Matrix zb_objectives(N_chromosomes,N_robj);
+		for(uint i=0;i<N_chromosomes;i++)
 		{
-			norm_objectives.push_back(zb_objectives[i]/intercepts);
+			std::vector<double> robj_x=distribution_objective_reductions(g.chromosomes[i].objectives);
+			for(uint j=0;j<N_robj;j++)
+				zb_objectives(i,j)=(robj_x[j]-ideal_objectives[j]);
 		}
+		scalarize_objectives(zb_objectives);
+		std::vector<double> intercepts;
+		build_hyperplane_intercepts(intercepts);
+		Matrix norm_objectives(g.chromosomes.size(),intercepts.size());
+		for(uint i=0;i<N_chromosomes;i++)
+			for(uint j=0;j<N_robj;j++)
+				norm_objectives(i,j)=zb_objectives(i,j)/intercepts[j];
 		if(g.chromosomes.size()==population)
 		{
 			g2=g;
@@ -530,14 +665,14 @@ protected:
 		}
 		if(reference_vectors.empty())
 		{
-			uint obj_dept=uint(distribution_objective_reductions(g.chromosomes[0].objectives).n_rows);
+			uint obj_dept=distribution_objective_reductions(g.chromosomes[0].objectives).size();
 			reference_vectors=generate_referenceVectors(obj_dept,reference_vector_divisions);
 		}
 		std::vector<uint> associated_ref_vector;
 		std::vector<double> distance_ref_vector;
 
 		std::vector<uint> niche_count;
-		arma::mat distances; // row: pop, col: ref_vec
+		Matrix distances; // row: pop, col: ref_vec
 		associate_to_references(
 			g,
 			norm_objectives,
@@ -582,13 +717,16 @@ protected:
 				niche_count[min_niche_index]=uint(10*g.chromosomes.size()); // inf
 				continue;
 			}
-			uint next_member_index=0;
+			uint next_member_index=0; // The assignment is redundant but ok.
 			if(niche_count[min_niche_index]==0)
 			{
-				arma::vec nc=distances.col(min_niche_index);
+				double min_val=distances(min_vec_neighbors[0],min_niche_index);
 				for(uint i:min_vec_neighbors)
-					if(nc(i)<distances(next_member_index))
+					if(distances(i,min_niche_index)<min_val)
+					{
 						next_member_index=i;
+						min_val=distances(i,min_niche_index);
+					}
 			}
 			else
 			{
@@ -615,13 +753,13 @@ protected:
 
 	void associate_to_references(
 		const thisGenerationType &gen,
-		const std::vector<arma::vec> &norm_objectives,
+		const Matrix &norm_objectives,
 		std::vector<uint> &associated_ref_vector,
 		std::vector<double> &distance_ref_vector,
 		std::vector<uint> &niche_count,
-		arma::mat distances)
+		Matrix &distances)
 	{
-		uint N_ref=uint(reference_vectors.size());
+		uint N_ref=reference_vectors.get_n_rows();
 		uint N_x=uint(gen.chromosomes.size());
 		niche_count.assign(N_ref, 0);
 		distances.zeros(N_x,N_ref); // row: pop, col: ref_vec
@@ -633,15 +771,27 @@ protected:
 			uint dist_min_index=0; // to avoid uninitialization warning
 			for(uint j=0;j<N_ref;j++)
 			{
-				arma::vec w=reference_vectors[j]/arma::norm(reference_vectors[j]);
-				arma::vec norm_obj=norm_objectives[i];
-				arma::mat wtnorm=w.t()*norm_obj;
-				if(wtnorm.n_rows!=1 || wtnorm.n_cols!=1)
-					throw std::runtime_error("unexpected matrix size A087624293!");
-				double scalar_wtnorm=wtnorm(0,0);
-				double dist=arma::norm(norm_obj-scalar_wtnorm*w);
+				std::vector<double> reference_vectors_row_j;
+				reference_vectors.get_row(j,reference_vectors_row_j);
+				double ref_vec_j_norm2=norm2(reference_vectors_row_j);
+				std::vector<double> w=reference_vectors_row_j;
+				for(double &x:w)
+					x/=ref_vec_j_norm2;
+				std::vector<double> norm_obj;
+				norm_objectives.get_row(i,norm_obj);
+				assert(w.size()==norm_obj.size() && "Vector size mismatch! A349687921");
+				double scalar_wtnorm=0.0;
+				for(int k=0;k<norm_obj.size();k++)
+					scalar_wtnorm+=w[k]*norm_obj[k];
+				double dist2=0.0;
+				for(int k=0;k<norm_obj.size();k++)
+				{
+					double dist_x=norm_obj[k]-scalar_wtnorm*w[k];
+					dist2+=dist_x*dist_x;
+				}
+				double dist=sqrt(dist2);
 				distances(i,j)=dist;
-				if(j==0 || dist<dist_min)
+				if(j==0||dist<dist_min)
 				{
 					dist_min=dist;
 					dist_min_index=j;
@@ -653,13 +803,59 @@ protected:
 		}
 	}
 
-	arma::vec build_hyperplane_intercepts()
+	void build_hyperplane_intercepts(std::vector<double> &xinv)
 	{
-		uint N_objectives=uint(extreme_objectives.n_rows);
-		arma::vec intercepts;
-		arma::mat ones_vec=arma::ones<arma::vec>(N_objectives);
-		intercepts=(1.0/arma::solve(extreme_objectives.t(),ones_vec));
-		return intercepts;
+		/*
+			solves A^T*x=[1]
+			y=(1.0)./x
+		*/
+		assert(extreme_objectives.get_n_rows()==extreme_objectives.get_n_cols() && "extreme_objectives must be square! A21658463546");
+		int n=extreme_objectives.get_n_rows();
+		Matrix L(n,n), U(n,n);
+		L.zeros();
+		U.zeros();
+		for (int i=0;i<n;i++)
+		{
+			for(int k=i;k<n;k++)
+			{
+				double sum = 0.0;
+				for (int j=0;j<i;j++)
+					sum+=(L(i,j)*U(j,k));
+				U(i,k)=extreme_objectives(k,i)-sum;
+			}
+			for(int k=i;k<n;k++)
+			{
+				if(i==k)
+					L(i,i)=1;
+				else
+				{
+					double sum=0.0;
+					for(int j=0;j<i;j++)
+						sum+=(L(k,j)*U(j,i));
+					L(k,i)=(extreme_objectives(i,k)-sum)/U(i,i);
+				}
+			}
+		}
+		std::vector<double> y(n);
+		for(int i=0;i<n;i++)
+		{
+			double sum=0.0;
+			for(int k=0;k<i;k++)
+				sum+=(L(i,k)*y[k]);
+			y[i]=(1.0-sum)/L(i,i);
+		}
+		std::vector<double> x(n);
+		for(int ii=0;ii<n;ii++)
+		{
+			int i=n-1-ii;
+			double sum=0.0;
+			for(int k=i+1;k<n;k++)
+				sum+=(U(i,k)*x[k]);
+			x[i]=(y[i]-sum)/U(i,i);
+		}
+		xinv.resize(n);
+		for(int i=0;i<n;i++)
+			xinv[i]=1.0/x[i];
 	}
 
 	template<typename T>
@@ -668,32 +864,36 @@ protected:
 		return uint(std::distance(v.begin(), std::min_element(v.begin(), v.end())));
 	}
 
-	void scalarize_objectives(const std::vector<arma::vec> &zb_objectives)
+	void scalarize_objectives(const Matrix &zb_objectives)
 	{
-		uint N_objectives=uint(zb_objectives[0].n_rows);
-		if(scalarized_objectives_min.is_empty())
+		uint N_objectives=zb_objectives.get_n_cols();
+		if(scalarized_objectives_min.empty())
 		{
 			extreme_objectives.zeros(N_objectives,N_objectives);
-			scalarized_objectives_min.ones(N_objectives);
-			scalarized_objectives_min*=arma::datum::inf;
+			scalarized_objectives_min.assign(N_objectives,std::numeric_limits<double>::infinity());
 		}
 		for(uint i=0;i<N_objectives;i++)
 		{
-			arma::vec w;
-			w.ones(N_objectives);
-			w*=(1e-10);
-			w(i)=1.0;
-			std::vector<double> s;
-			int N=int(zb_objectives.size());
-			for(int j=0;j<N;j++)
-				s.push_back((zb_objectives[j]/w).max());
+			std::vector<double> w;
+			w.assign(N_objectives,1e-10);
+			w[i]=1.0;
+			int Nx=zb_objectives.get_n_rows();
+			std::vector<double> s(Nx);
+			for(int j=0;j<Nx;j++)
+			{
+				double val_max=-1.0e300;
+				for(int k=0;k<N_objectives;k++)
+					val_max=std::max(val_max,zb_objectives(j,k)/w[k]);
+				s[j]=val_max;
+			}
 			int min_sc_idx=index_of_min(s);
 			double min_sc=s[min_sc_idx];
 
-			if(min_sc<scalarized_objectives_min(i))
+			if(min_sc<scalarized_objectives_min[i])
 			{
-				scalarized_objectives_min(i)=min_sc;
-				extreme_objectives.col(i)=zb_objectives[min_sc_idx];
+				scalarized_objectives_min[i]=min_sc;
+				for(int j=0;j<N_objectives;j++)
+					extreme_objectives(i,j)=zb_objectives(min_sc_idx,j);
 			}
 		}
 
@@ -871,43 +1071,40 @@ protected:
 
 	bool Dominates(thisChromosomeType a,thisChromosomeType b)
 	{
-		if(a.objectives.n_rows!=b.objectives.n_rows)
+		if(a.objectives.size()!=b.objectives.size())
 			throw std::runtime_error("vector size mismatch A73592753!");
-		for(uint i=0;i<a.objectives.n_rows;i++)
-			if(a.objectives(i)>b.objectives(i))
+		for(uint i=0;i<a.objectives.size();i++)
+			if(a.objectives[i]>b.objectives[i])
 				return false;
-		for(uint i=0;i<a.objectives.n_rows;i++)
-			if(a.objectives(i)<b.objectives(i))
+		for(uint i=0;i<a.objectives.size();i++)
+			if(a.objectives[i]<b.objectives[i])
 				return true;
 		return false;
 	}
 
-	std::vector<arma::vec> generate_integerReferenceVectors(int dept,int N_division)
+	std::vector<std::vector<double>> 
+		generate_integerReferenceVectors(int dept,int N_division)
 	{
-		std::vector<arma::vec> result;
 		if(dept<1)
 			throw std::runtime_error("wrong vector dept!");
 		if(dept==1)
 		{
-			arma::vec v(1);
-			v(0)=N_division;
-			result.push_back(v);
-
-			return result;
+			return {{(double)N_division}};
 		}
+		std::vector<std::vector<double>> result;
 		for(int i=0;i<=N_division;i++)
 		{
-			std::vector<arma::vec> tail;
+			std::vector<std::vector<double>> tail;
 			tail=generate_integerReferenceVectors(dept-1,N_division-i);
 
 			for(int j=0;j<int(tail.size());j++)
 			{
-				arma::vec v1=tail[j];
-				arma::vec v2(v1.n_rows+1);
-				v2(0)=i;
+				std::vector<double> v1=tail[j];
+				std::vector<double> v2(v1.size()+1);
+				v2[0]=i;
 				for(int k=0;k<int(v1.size());k++)
 				{
-					v2(k+1)=v1(k);
+					v2[k+1]=v1[k];
 				}
 				result.push_back(v2);
 			}
@@ -915,11 +1112,13 @@ protected:
 		return result;
 	}
 
-	std::vector<arma::vec> generate_referenceVectors(int dept,int N_division)
+	Matrix generate_referenceVectors(int dept,int N_division)
 	{
-		std::vector<arma::vec> A=generate_integerReferenceVectors(dept,N_division);
-		for(int i=0;i<int(A.size());i++)
-			A[i]=A[i]/arma::sum(A[i]);
+		Matrix A;
+		A=generate_integerReferenceVectors(dept,N_division);
+		for(int i=0;i<A.get_n_rows();i++)
+			for(int j=0;j<A.get_n_cols();j++)
+				A(i,j)/=double(N_division);
 		return A;
 	}
 
@@ -1001,7 +1200,8 @@ protected:
 		if(custom_refresh!=nullptr)
 			custom_refresh();
 		if(idle_delay_us>0)
-			boost::this_thread::sleep(boost::posix_time::microseconds(idle_delay_us));
+			std::this_thread::sleep_for(std::chrono::microseconds(idle_delay_us));
+			// boost::this_thread::sleep(boost::posix_time::microseconds(idle_delay_us));
 	}
 
 	void init_population(thisGenerationType &generation0)
