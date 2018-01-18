@@ -3,6 +3,12 @@ A free C++ Genetic Algorithm library
 
 <br>
 
+### Download
+
+Download link:
+
+https://github.com/Arash-codedev/openGA/archive/v1.0.zip
+
 ### Documentation
 
 Documentation is available at:
