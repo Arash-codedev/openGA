@@ -4,6 +4,7 @@
 #include <GL/glut.h>
 #include <GL/freeglut.h>
 #include <SDL2/SDL.h>
+#include <boost/thread.hpp>
 
 bool to_reopen_window=false;
 double gui_subject_R,gui_subject_G,gui_subject_B;

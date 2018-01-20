@@ -62,7 +62,6 @@ MyGenes mutate(
 		loca_scale*=loca_scale;
 	else if(rand()<0.1)
 		loca_scale=1.0;
-	double r=rand();
 	bool in_range_x1,in_range_x2;
 	do{
 		X_new=X_base;

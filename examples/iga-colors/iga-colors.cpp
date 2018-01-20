@@ -12,7 +12,9 @@ struct MyGenes
 
 	std::string to_string() const
 	{
-		const unsigned red = R, green = G, blue = B;
+		const unsigned red = (unsigned)R;
+		const unsigned green = (unsigned)G;
+		const unsigned blue = (unsigned)B;
 		char hexstr[16];
 		snprintf(hexstr,sizeof(hexstr),"%02x%02x%02x",red,green,blue);
 		std::string retstr=hexstr;
@@ -54,7 +56,6 @@ MyGenes mutate(
 {
 	MyGenes X_new;
 	(void) shrink_scale;
-	double r=rand();
 	bool in_range_R,in_range_G,in_range_B;
 	do{
 		X_new=X_base;

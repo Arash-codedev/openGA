@@ -5,6 +5,8 @@
 #include <vector>
 #include "genetic.hpp"
 #include <fstream>
+#include <sstream>
+#include <iomanip>
 
 struct MyGenes
 {
@@ -14,7 +16,7 @@ struct MyGenes
 	{
 		std::ostringstream out;
 		out<<"{";
-		for(int i=0;i<x.size();i++)
+		for(unsigned long i=0;i<x.size();i++)
 			out<<(i?",":"")<<std::setprecision(10)<<x[i];
 		out<<"}";
 		return out.str();
@@ -43,7 +45,7 @@ bool eval_genes(
 {
 	constexpr double pi=3.141592653589793238;
 	c.cost=10*double(p.x.size());
-	for(int i=0;i<p.x.size();i++)
+	for(unsigned long i=0;i<p.x.size();i++)
 		c.cost+=p.x[i]*p.x[i]-10.0*cos(2.0*pi*p.x[i]);
 	return true;
 }
@@ -59,13 +61,12 @@ MyGenes mutate(
 		loca_scale*=loca_scale;
 	else if(rand()<0.1)
 		loca_scale=1.0;
-	double r=rand();
 	bool out_of_range;
 	do{
 		out_of_range=false;
 		X_new=X_base;
 		
-		for(int i=0;i<X_new.x.size();i++)
+		for(unsigned long i=0;i<X_new.x.size();i++)
 		{
 			double mu=1.7*rand()*loca_scale;
 			X_new.x[i]+=mu*(rand()-rand());
@@ -82,7 +83,7 @@ MyGenes crossover(
 	const std::function<double(void)> &rand)
 {
 	MyGenes X_new;
-	for(int i=0;i<X1.x.size();i++)
+	for(unsigned long i=0;i<X1.x.size();i++)
 	{
 		double r=rand();
 		X_new.x.push_back(r*X1.x[i]+(1.0-r)*X2.x[i]);
