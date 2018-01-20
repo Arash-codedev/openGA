@@ -13,6 +13,7 @@
 #include <assert.h>
 #include <limits>
 #include <algorithm>
+#include <functional>
 
 #ifndef NS_EA_BEGIN
 #define NS_EA_BEGIN namespace EA {
@@ -66,8 +67,8 @@ struct GenerationType_SO_abstract
 
 class Matrix
 {
+	unsigned int n_rows,n_cols;
 	std::vector<double> data;
-	uint n_rows,n_cols;
 public:
 
 	Matrix():
@@ -101,8 +102,8 @@ public:
 		return (!n_rows)||(!n_cols);
 	}
 
-	uint get_n_rows() const { return n_rows; }
-	uint get_n_cols() const { return n_cols; }
+	unsigned int get_n_rows() const { return n_rows; }
+	unsigned int get_n_cols() const { return n_cols; }
 
 	void clear()
 	{
@@ -149,20 +150,19 @@ public:
 
 	void operator=(const std::vector<std::vector<double>> &A)
 	{
-
-		int A_rows=A.size();
-		int A_cols=0;
+		uint A_rows=(uint)A.size();
+		uint A_cols=0;
 		if(A_rows>0)
-			A_cols=A[0].size();
+			A_cols=(uint)A[0].size();
 		n_rows=A_rows;
 		n_cols=A_cols;
 		if(n_rows>0 && n_cols>0)
 		{
 			data.resize(n_rows*n_cols);
-			for(int i=0;i<n_rows;i++)
+			for(uint i=0;i<n_rows;i++)
 			{
 				assert(A[i].size()==A_cols && "Vector of vector does not have a constant row size! A21654616");
-				for(int j=0;j<n_cols;j++)
+				for(unsigned int j=0;j<n_cols;j++)
 					(*this)(i,j)=A[i][j];
 			}
 		}
@@ -172,9 +172,9 @@ public:
 
 	void print()
 	{
-		for(int i=0;i<n_rows;i++)
+		for(uint i=0;i<n_rows;i++)
 		{
-			for(int j=0;j<n_cols;j++)
+			for(uint j=0;j<n_cols;j++)
 				std::cout<<"\t"<<(*this)(i,j);
 			
 			std::cout<<std::endl;
@@ -623,7 +623,7 @@ protected:
 			throw std::runtime_error("Wrong code A0812473247.");
 		if(reset)
 			ideal_objectives=distribution_objective_reductions(g.chromosomes[0].objectives);
-		uint N_r_objectives=ideal_objectives.size();
+		uint N_r_objectives=(uint)ideal_objectives.size();
 		for(thisChromosomeType x:g.chromosomes)
 		{
 			std::vector<double> obj_reduced=distribution_objective_reductions(x.objectives);
@@ -642,8 +642,8 @@ protected:
 			return ;
 		}
 		g2.chromosomes.clear();
-		const int N_robj=distribution_objective_reductions(g.chromosomes[0].objectives).size();
-		const int N_chromosomes=g.chromosomes.size();
+		const uint N_robj=(uint)distribution_objective_reductions(g.chromosomes[0].objectives).size();
+		const uint N_chromosomes=(uint)g.chromosomes.size();
 		Matrix zb_objectives(N_chromosomes,N_robj);
 		for(uint i=0;i<N_chromosomes;i++)
 		{
@@ -654,7 +654,7 @@ protected:
 		scalarize_objectives(zb_objectives);
 		std::vector<double> intercepts;
 		build_hyperplane_intercepts(intercepts);
-		Matrix norm_objectives(g.chromosomes.size(),intercepts.size());
+		Matrix norm_objectives((uint)g.chromosomes.size(),(uint)intercepts.size());
 		for(uint i=0;i<N_chromosomes;i++)
 			for(uint j=0;j<N_robj;j++)
 				norm_objectives(i,j)=zb_objectives(i,j)/intercepts[j];
@@ -665,7 +665,7 @@ protected:
 		}
 		if(reference_vectors.empty())
 		{
-			uint obj_dept=distribution_objective_reductions(g.chromosomes[0].objectives).size();
+			uint obj_dept=(uint)distribution_objective_reductions(g.chromosomes[0].objectives).size();
 			reference_vectors=generate_referenceVectors(obj_dept,reference_vector_divisions);
 		}
 		std::vector<uint> associated_ref_vector;
@@ -781,10 +781,10 @@ protected:
 				norm_objectives.get_row(i,norm_obj);
 				assert(w.size()==norm_obj.size() && "Vector size mismatch! A349687921");
 				double scalar_wtnorm=0.0;
-				for(int k=0;k<norm_obj.size();k++)
+				for(uint k=0;k<norm_obj.size();k++)
 					scalar_wtnorm+=w[k]*norm_obj[k];
 				double dist2=0.0;
-				for(int k=0;k<norm_obj.size();k++)
+				for(uint k=0;k<norm_obj.size();k++)
 				{
 					double dist_x=norm_obj[k]-scalar_wtnorm*w[k];
 					dist2+=dist_x*dist_x;
@@ -882,7 +882,7 @@ protected:
 			for(int j=0;j<Nx;j++)
 			{
 				double val_max=-1.0e300;
-				for(int k=0;k<N_objectives;k++)
+				for(uint k=0;k<N_objectives;k++)
 					val_max=std::max(val_max,zb_objectives(j,k)/w[k]);
 				s[j]=val_max;
 			}
@@ -892,7 +892,7 @@ protected:
 			if(min_sc<scalarized_objectives_min[i])
 			{
 				scalarized_objectives_min[i]=min_sc;
-				for(int j=0;j<N_objectives;j++)
+				for(uint j=0;j<N_objectives;j++)
 					extreme_objectives(i,j)=zb_objectives(min_sc_idx,j);
 			}
 		}
@@ -1116,8 +1116,8 @@ protected:
 	{
 		Matrix A;
 		A=generate_integerReferenceVectors(dept,N_division);
-		for(int i=0;i<A.get_n_rows();i++)
-			for(int j=0;j<A.get_n_cols();j++)
+		for(uint i=0;i<A.get_n_rows();i++)
+			for(uint j=0;j<A.get_n_cols();j++)
 				A(i,j)/=double(N_division);
 		return A;
 	}
