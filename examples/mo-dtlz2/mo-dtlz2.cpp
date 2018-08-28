@@ -103,13 +103,13 @@ std::vector<double> distribution_objective_reductions(const std::vector<double> 
 void MO_report_generation(
 	int generation_number,
 	const EA::GenerationType<MyGenes,MyMiddleCost> &last_generation,
-	const std::vector<uint>& pareto_front)
+	const std::vector<unsigned int>& pareto_front)
 {
 	(void) last_generation;
 
 	std::cout<<"Generation ["<<generation_number<<"], ";
 	std::cout<<"Pareto-Front {";
-	for(uint i=0;i<pareto_front.size();i++)
+	for(unsigned int i=0;i<pareto_front.size();i++)
 	{
 		std::cout<<(i>0?",":"");
 		std::cout<<pareto_front[i];
@@ -122,8 +122,8 @@ void save_results(const GA_Type &ga_obj)
 	std::ofstream output_file;
 	output_file.open("./bin/result_mo2.txt");
 	output_file<<"N"<<"\t"<<"x"<<"\t"<<"y"<<"\t"<<"cost1"<<"\t"<<"cost2"<<"\n";
-	std::vector<uint> paretofront_indices=ga_obj.last_generation.fronts[0];
-	for(uint i:paretofront_indices)
+	std::vector<unsigned int> paretofront_indices=ga_obj.last_generation.fronts[0];
+	for(unsigned int i:paretofront_indices)
 	{
 		const auto &X=ga_obj.last_generation.chromosomes[i];
 		output_file

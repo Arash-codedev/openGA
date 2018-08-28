@@ -89,7 +89,7 @@ void calculate_IGA_total_fitness(GA_Type::thisGenerationType &g)
 {
 
 
-	for(uint i=0;i<g.chromosomes.size();i++)
+	for(unsigned int i=0;i<g.chromosomes.size();i++)
 	{
 		GA_Type::thisChromosomeType &X=g.chromosomes[i];
 		// X.total_cost=100.0-X.middle_costs.cost_user_score;
