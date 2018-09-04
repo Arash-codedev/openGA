@@ -186,7 +186,7 @@ public:
 	inline double  operator()(unsigned int row,unsigned int col) const {return data[row*n_cols+col];}
 };
 
-double norm2(const std::vector<double> &x_vec)
+inline double norm2(const std::vector<double> &x_vec)
 {
 	double sum=0.0;
 	for(double e:x_vec)
@@ -1418,7 +1418,7 @@ protected:
 		if(is_interactive())
 		{
 			if(N_add+elite_count!=population)
-				throw std::runtime_error("In IGA mode, elite fraction + crossover fraction + mutation fraction must be equal to 1.0 !");
+				throw std::runtime_error("In IGA mode, elite fraction + crossover fraction must be equal to 1.0 !");
 		}
 
 		if(!multi_threading || N_threads==1 || is_interactive())
