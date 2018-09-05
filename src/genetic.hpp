@@ -307,7 +307,7 @@ public:
 		average_stall_max(10),
 		tol_stall_best(1e-6),
 		best_stall_max(10),
-		reference_vector_divisions(10),
+		reference_vector_divisions(0),
 		enable_reference_vectors(true),
 		multi_threading(true),
 		dynamic_threading(true),
@@ -357,6 +357,8 @@ public:
 		Chronometer timer;
 		timer.tic();
 
+		if(!reference_vector_divisions)
+			reference_vector_divisions=population;
 		thisGenerationType generation0;
 		init_population(generation0);
 		generation_step=0;
