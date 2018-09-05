@@ -4,7 +4,7 @@
 #include <GL/glut.h>
 #include <GL/freeglut.h>
 #include <SDL2/SDL.h>
-#include <boost/thread.hpp>
+#include <thread>
 
 bool to_reopen_window=false;
 double gui_subject_R,gui_subject_G,gui_subject_B;
@@ -96,5 +96,6 @@ void refresh_gui()
 	if(glutGetWindow())
 		glutPostRedisplay();
 	glutMainLoopEvent();
-	boost::this_thread::sleep(boost::posix_time::milliseconds(100));
+	std::this_thread::sleep_for(std::chrono::milliseconds(100));
+	// boost::this_thread::sleep(boost::posix_time::milliseconds(100));
 }

@@ -7,7 +7,7 @@ A free C++ Genetic Algorithm library
 
 Download link:
 
-https://github.com/Arash-codedev/openGA/archive/v1.0.1.zip
+https://github.com/Arash-codedev/openGA/archive/v1.0.2.zip
 
 ### Documentation
 
@@ -18,6 +18,18 @@ https://github.com/Arash-codedev/openGA/blob/master/openGA.pdf
 If you have found this library useful for your work, please cite the following paper:
 
 [openGA, a C++ Genetic Algorithm library](https://www.researchgate.net/publication/320944800_openGA_a_C_Genetic_Algorithm_library)
+
+
+```
+@inproceedings{mohammadi2017openga,
+  title={OpenGA, a C++ Genetic Algorithm Library},
+  author={Mohammadi, Arash and Asadi, Houshyar and Mohamed, Shady and Nelson, Kyle and Nahavandi, Saeid},
+  booktitle={Systems, Man, and Cybernetics (SMC), 2017 IEEE International Conference on},
+  pages={2051--2056},
+  year={2017},
+  organization={IEEE}
+}
+```
 
 ### About 
 

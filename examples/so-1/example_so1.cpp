@@ -63,7 +63,6 @@ MyGenes mutate(
 	double shrink_scale)
 {
 	MyGenes X_new;
-	double r=rand();
 	bool in_range_x,in_range_y;
 	double loca_scale=shrink_scale;
 	if(rand()<0.4)

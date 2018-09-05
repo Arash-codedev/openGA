@@ -1199,7 +1199,6 @@ protected:
 			custom_refresh();
 		if(idle_delay_us>0)
 			std::this_thread::sleep_for(std::chrono::microseconds(idle_delay_us));
-			// boost::this_thread::sleep(boost::posix_time::microseconds(idle_delay_us));
 	}
 
 	void init_population(thisGenerationType &generation0)
