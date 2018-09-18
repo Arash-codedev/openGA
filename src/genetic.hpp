@@ -22,6 +22,12 @@
 
 NS_EA_BEGIN;
 
+using std::vector;
+using std::cout;
+using std::endl;
+using std::function;
+using std::runtime_error;
+
 enum class GA_MODE
 {
 	SOGA,
@@ -35,20 +41,20 @@ struct ChromosomeType
 	GeneType genes;
 	MiddleCostType middle_costs; 	// individual costs
 	double total_cost;				// for single objective
-	std::vector<double> objectives;	// for multi-objective
+	vector<double> objectives;	// for multi-objective
 };
 
 template<typename GeneType,typename MiddleCostType>
 struct GenerationType
 {
-	std::vector<ChromosomeType<GeneType,MiddleCostType>> chromosomes;
+	vector<ChromosomeType<GeneType,MiddleCostType>> chromosomes;
 	double best_total_cost= (std::numeric_limits<double>::infinity()); // for single objective
 	double average_cost= 0.0; // for single objective
 
 	int best_chromosome_index=-1; // for single objective
-	std::vector<int> sorted_indices; // for single objective
-	std::vector<std::vector<unsigned int>> fronts; // for multi-objective
-	std::vector<double> selection_chance_cumulative;
+	vector<int> sorted_indices; // for single objective
+	vector<vector<unsigned int>> fronts; // for multi-objective
+	vector<double> selection_chance_cumulative;
 	double exe_time;
 };
 
@@ -68,7 +74,7 @@ struct GenerationType_SO_abstract
 class Matrix
 {
 	unsigned int n_rows,n_cols;
-	std::vector<double> data;
+	vector<double> data;
 public:
 
 	Matrix():
@@ -114,7 +120,7 @@ public:
 
 	void set_col(
 		unsigned int col_idx,
-		const std::vector<double> &col_vector)
+		const vector<double> &col_vector)
 	{
 		assert(col_vector.size()==n_rows && "Assigned column vector size mismatch.");
 		for(unsigned int i=0;i<n_rows;i++)
@@ -123,7 +129,7 @@ public:
 
 	void set_row(
 		unsigned int row_idx,
-		const std::vector<double> &row_vector)
+		const vector<double> &row_vector)
 	{
 		assert(row_vector.size()==n_cols && "Assigned row vector size mismatch.");
 		for(unsigned int i=0;i<n_cols;i++)
@@ -132,7 +138,7 @@ public:
 
 	void get_col(
 		unsigned int col_idx,
-		std::vector<double> &col_vector) const
+		vector<double> &col_vector) const
 	{
 		col_vector.resize(n_rows);
 		for(unsigned int i=0;i<n_rows;i++)
@@ -141,14 +147,14 @@ public:
 
 	void get_row(
 		unsigned int row_idx,
-		std::vector<double> &row_vector) const
+		vector<double> &row_vector) const
 	{
 		row_vector.resize(n_cols);
 		for(unsigned int i=0;i<n_cols;i++)
 			row_vector[i]=(*this)(row_idx,i);
 	}
 
-	void operator=(const std::vector<std::vector<double>> &A)
+	void operator=(const vector<vector<double>> &A)
 	{
 		unsigned int A_rows=(unsigned int)A.size();
 		unsigned int A_cols=0;
@@ -175,9 +181,9 @@ public:
 		for(unsigned int i=0;i<n_rows;i++)
 		{
 			for(unsigned int j=0;j<n_cols;j++)
-				std::cout<<"\t"<<(*this)(i,j);
+				cout<<"\t"<<(*this)(i,j);
 			
-			std::cout<<std::endl;
+			cout<<endl;
 		}
 		data.clear();
 	}
@@ -186,7 +192,7 @@ public:
 	inline double  operator()(unsigned int row,unsigned int col) const {return data[row*n_cols+col];}
 };
 
-inline double norm2(const std::vector<double> &x_vec)
+inline double norm2(const vector<double> &x_vec)
 {
 	double sum=0.0;
 	for(double e:x_vec)
@@ -225,7 +231,7 @@ public:
 	double toc()
 	{
 		if(!initialized)
-			throw std::runtime_error("Chronometer is not initialized!");
+			throw runtime_error("Chronometer is not initialized!");
 	    time_stop = std::chrono::high_resolution_clock::now();
 		return (double)std::chrono::duration<double>(time_stop-time_start).count();
 	}
@@ -240,12 +246,12 @@ private:
 	std::uniform_real_distribution<double> unif_dist;
 	int average_stall_count;
 	int best_stall_count;
-	std::vector<double> ideal_objectives;		// for multi-objective
+	vector<double> ideal_objectives;		// for multi-objective
 	Matrix extreme_objectives;	// for multi-objective
-	std::vector<double> scalarized_objectives_min;	// for multi-objective
+	vector<double> scalarized_objectives_min;	// for multi-objective
 	Matrix reference_vectors;
 	double shrink_scale;
-
+	unsigned int N_robj;
 public:
 
 	typedef ChromosomeType<GeneType,MiddleCostType> thisChromosomeType;
@@ -274,27 +280,28 @@ public:
 	bool user_request_stop;
 	long idle_delay_us;
 
-	std::function<void(thisGenerationType&)> calculate_IGA_total_fitness;
-	std::function<double(const thisChromosomeType&)> calculate_SO_total_fitness;
-	std::function<std::vector<double>(thisChromosomeType&)> calculate_MO_objectives;
-	std::function<std::vector<double>(const std::vector<double>&)> distribution_objective_reductions;
-	std::function<void(GeneType&,const std::function<double(void)> &rand)> init_genes;
-	std::function<bool(const GeneType&,MiddleCostType&)> eval_genes;
-	std::function<bool(const GeneType&,MiddleCostType&,const thisGenerationType&)> eval_genes_IGA;
-	std::function<GeneType(const GeneType&,const std::function<double(void)> &rand,double shrink_scale)> mutate;
-	std::function<GeneType(const GeneType&,const GeneType&,const std::function<double(void)> &rand)> crossover;
-	std::function<void(int,const thisGenerationType&,const GeneType&)> SO_report_generation;
-	std::function<void(int,const thisGenerationType&,const std::vector<unsigned int>&)> MO_report_generation;
-	std::function<void(void)> custom_refresh;
-	std::function<double(int)> set_shrink_scale=[](int n){return (n<=5?1.0:1.0/sqrt(n-5+1));};
+	function<void(thisGenerationType&)> calculate_IGA_total_fitness;
+	function<double(const thisChromosomeType&)> calculate_SO_total_fitness;
+	function<vector<double>(thisChromosomeType&)> calculate_MO_objectives;
+	function<vector<double>(const vector<double>&)> distribution_objective_reductions;
+	function<void(GeneType&,const function<double(void)> &rand)> init_genes;
+	function<bool(const GeneType&,MiddleCostType&)> eval_genes;
+	function<bool(const GeneType&,MiddleCostType&,const thisGenerationType&)> eval_genes_IGA;
+	function<GeneType(const GeneType&,const function<double(void)> &rand,double shrink_scale)> mutate;
+	function<GeneType(const GeneType&,const GeneType&,const function<double(void)> &rand)> crossover;
+	function<void(int,const thisGenerationType&,const GeneType&)> SO_report_generation;
+	function<void(int,const thisGenerationType&,const vector<unsigned int>&)> MO_report_generation;
+	function<void(void)> custom_refresh;
+	function<double(int)> set_shrink_scale=[](int n){return (n<=5?1.0:1.0/sqrt(n-5+1));};
 
-	std::vector<thisGenSOAbs> generations_so_abs;
+	vector<thisGenSOAbs> generations_so_abs;
 	thisGenerationType last_generation;
 
 	////////////////////////////////////////////////////
 
 	Genetic() :
 		unif_dist(0.0,1.0),
+		N_robj(0),
 		problem_mode(GA_MODE::SOGA),
 		population(50),
 		crossover_fraction(0.7),
@@ -336,6 +343,30 @@ public:
 			N_threads=8;
 	}
 
+	int get_number_reference_vectors(int N_objectives,int N_divisions)
+	{
+		int m=N_objectives-1;
+		int n=N_divisions;
+		if(m>n)
+			std::swap(m,n); // make sure m<=n
+		int result=1;
+		for(int k=1;k<=m;k++)
+		{
+			result*=m+n-k+1;
+			result/=k;
+		}
+		return result;
+	}
+
+	void calculate_N_robj(const thisGenerationType &g)
+	{
+		if(!g.chromosomes.size())
+			throw runtime_error("Code should not reach here. A87946516564");
+		N_robj=(unsigned int)distribution_objective_reductions(g.chromosomes[0].objectives).size();
+		if(!N_robj)
+			throw runtime_error("Number of the reduced objective is zero");
+	}
+
 	void solve_init()
 	{
 		check_settings();
@@ -343,26 +374,43 @@ public:
 		average_stall_count=0;
 		best_stall_count=0;
 		generation_step=-1;
+
+
 		if(verbose)
 		{
-			std::cout<<"**************************************"<<std::endl;
-			std::cout<<"*             GA started             *"<<std::endl;
-			std::cout<<"**************************************"<<std::endl;
-			std::cout<<"population: "<<population<<std::endl;
-			std::cout<<"elite_count: "<<elite_count<<std::endl;
-			std::cout<<"crossover_fraction: "<<crossover_fraction<<std::endl;
-			std::cout<<"mutation_rate: "<<mutation_rate<<std::endl;
-			std::cout<<"**************************************"<<std::endl;
+			cout<<"**************************************"<<endl;
+			cout<<"*             GA started             *"<<endl;
+			cout<<"**************************************"<<endl;
+			cout<<"population: "<<population<<endl;
+			cout<<"elite_count: "<<elite_count<<endl;
+			cout<<"crossover_fraction: "<<crossover_fraction<<endl;
+			cout<<"mutation_rate: "<<mutation_rate<<endl;
+			cout<<"**************************************"<<endl;
 		}
 		Chronometer timer;
 		timer.tic();
 
-		if(!reference_vector_divisions)
-			reference_vector_divisions=population;
 		thisGenerationType generation0;
 		init_population(generation0);
 		generation_step=0;
 		finalize_objectives(generation0);
+
+		if(!is_single_objective())
+		{
+			calculate_N_robj(generation0);
+			if(!reference_vector_divisions)
+			{
+				reference_vector_divisions=2;
+				while(get_number_reference_vectors(N_robj,reference_vector_divisions+1)<=(int)population)
+					reference_vector_divisions++;
+				if(verbose)
+				{
+					cout<<"**************************************"<<endl;
+					cout<<"reference_vector_divisions: "<<reference_vector_divisions<<endl;
+					cout<<"**************************************"<<endl;
+				}
+			}
+		}
 		rank_population(generation0); // used for ellite tranfre, crossover and mutation
 		finalize_generation(generation0);
 		if(!is_single_objective())
@@ -469,13 +517,13 @@ protected:
 	{
 		if(verbose)
 		{
-			std::cout<<"Stop criteria: ";
+			cout<<"Stop criteria: ";
 			if(stop==StopReason::Undefined)
-				std::cout<<"There is a bug in this function";
+				cout<<"There is a bug in this function";
 			else
-				std::cout<<stop_reason_to_string(stop);
-			std::cout<<std::endl;
-			std::cout<<"**************************************"<<std::endl;
+				cout<<stop_reason_to_string(stop);
+			cout<<endl;
+			cout<<"**************************************"<<endl;
 		}
 	}
 
@@ -531,75 +579,75 @@ protected:
 		if(is_interactive())
 		{
 			if(calculate_IGA_total_fitness==nullptr)
-				throw std::runtime_error("calculate_IGA_total_fitness is null in interactive mode!");
+				throw runtime_error("calculate_IGA_total_fitness is null in interactive mode!");
 			if(calculate_SO_total_fitness!=nullptr)
-				throw std::runtime_error("calculate_SO_total_fitness is not null in interactive mode!");
+				throw runtime_error("calculate_SO_total_fitness is not null in interactive mode!");
 			if(calculate_MO_objectives!=nullptr)
-				throw std::runtime_error("calculate_MO_objectives is not null in interactive mode!");
+				throw runtime_error("calculate_MO_objectives is not null in interactive mode!");
 			if(distribution_objective_reductions!=nullptr)
-				throw std::runtime_error("distribution_objective_reductions is not null in interactive mode!");
+				throw runtime_error("distribution_objective_reductions is not null in interactive mode!");
 			if(MO_report_generation!=nullptr)
-				throw std::runtime_error("MO_report_generation is not null in interactive mode!");
+				throw runtime_error("MO_report_generation is not null in interactive mode!");
 			if(eval_genes_IGA==nullptr)
-				throw std::runtime_error("eval_genes_IGA is null in interactive mode!");
+				throw runtime_error("eval_genes_IGA is null in interactive mode!");
 			if(eval_genes!=nullptr)
-				throw std::runtime_error("eval_genes is not null in interactive mode (use eval_genes_IGA instead)!");
+				throw runtime_error("eval_genes is not null in interactive mode (use eval_genes_IGA instead)!");
 		}
 		else
 		{
 			if(calculate_IGA_total_fitness!=nullptr)
-				throw std::runtime_error("calculate_IGA_total_fitness is not null in non-interactive mode!");
+				throw runtime_error("calculate_IGA_total_fitness is not null in non-interactive mode!");
 			if(eval_genes_IGA!=nullptr)
-				throw std::runtime_error("eval_genes_IGA is not null in non-interactive mode!");
+				throw runtime_error("eval_genes_IGA is not null in non-interactive mode!");
 			if(eval_genes==nullptr)
-				throw std::runtime_error("eval_genes is null!");
+				throw runtime_error("eval_genes is null!");
 			if(is_single_objective())
 			{
 				if(calculate_SO_total_fitness==nullptr)
-					throw std::runtime_error("calculate_SO_total_fitness is null in single objective mode!");
+					throw runtime_error("calculate_SO_total_fitness is null in single objective mode!");
 				if(calculate_MO_objectives!=nullptr)
-					throw std::runtime_error("calculate_MO_objectives is not null in single objective mode!");
+					throw runtime_error("calculate_MO_objectives is not null in single objective mode!");
 				if(distribution_objective_reductions!=nullptr)
-					throw std::runtime_error("distribution_objective_reductions is not null in single objective mode!");
+					throw runtime_error("distribution_objective_reductions is not null in single objective mode!");
 				if(MO_report_generation!=nullptr)
-					throw std::runtime_error("MO_report_generation is not null in single objective mode!");
+					throw runtime_error("MO_report_generation is not null in single objective mode!");
 			}
 			else
 			{
 				if(calculate_SO_total_fitness!=nullptr)
-					throw std::runtime_error("calculate_SO_total_fitness is no null in multi-objective mode!");
+					throw runtime_error("calculate_SO_total_fitness is no null in multi-objective mode!");
 				if(calculate_MO_objectives==nullptr)
-					throw std::runtime_error("calculate_MO_objectives is null in multi-objective mode!");
+					throw runtime_error("calculate_MO_objectives is null in multi-objective mode!");
 				if(distribution_objective_reductions==nullptr)
-					throw std::runtime_error("distribution_objective_reductions is null in multi-objective mode!");
+					throw runtime_error("distribution_objective_reductions is null in multi-objective mode!");
 				if(MO_report_generation==nullptr)
-					throw std::runtime_error("MO_report_generation is null in multi-objective mode!");
+					throw runtime_error("MO_report_generation is null in multi-objective mode!");
 			}
 		}
 
 		if(init_genes==nullptr)
-			throw std::runtime_error("init_genes is not adjusted.");
+			throw runtime_error("init_genes is not adjusted.");
 		if(mutate==nullptr)
-			throw std::runtime_error("mutate is not adjusted.");
+			throw runtime_error("mutate is not adjusted.");
 		if(crossover==nullptr)
-			throw std::runtime_error("crossover is not adjusted.");
+			throw runtime_error("crossover is not adjusted.");
 		if(N_threads<1)
-			throw std::runtime_error("Number of threads is below 1.");
+			throw runtime_error("Number of threads is below 1.");
 		if(population<1)
-			throw std::runtime_error("population is below 1.");
+			throw runtime_error("population is below 1.");
 		if(is_single_objective())
 		{ // SO (including IGA)
 			if(SO_report_generation==nullptr)
-				throw std::runtime_error("SO_report_generation is not adjusted while problem mode is single-objective");
+				throw runtime_error("SO_report_generation is not adjusted while problem mode is single-objective");
 			if(MO_report_generation!=nullptr)
-				throw std::runtime_error("MO_report_generation is adjusted while problem mode is single-objective");
+				throw runtime_error("MO_report_generation is adjusted while problem mode is single-objective");
 		}
 		else
 		{
 			if(SO_report_generation!=nullptr)
-				throw std::runtime_error("SO_report_generation is adjusted while problem mode is multi-objective");
+				throw runtime_error("SO_report_generation is adjusted while problem mode is multi-objective");
 			if(MO_report_generation==nullptr)
-				throw std::runtime_error("MO_report_generation is not adjusted while problem mode is multi-objective");
+				throw runtime_error("MO_report_generation is not adjusted while problem mode is multi-objective");
 		}
 	}
 
@@ -620,13 +668,13 @@ protected:
 			return ;
 
 		if(is_single_objective())
-			throw std::runtime_error("Wrong code A0812473247.");
+			throw runtime_error("Wrong code A0812473247.");
 		if(reset)
 			ideal_objectives=distribution_objective_reductions(g.chromosomes[0].objectives);
 		unsigned int N_r_objectives=(unsigned int)ideal_objectives.size();
 		for(thisChromosomeType x:g.chromosomes)
 		{
-			std::vector<double> obj_reduced=distribution_objective_reductions(x.objectives);
+			vector<double> obj_reduced=distribution_objective_reductions(x.objectives);
 			for(unsigned int i=0;i<N_r_objectives;i++)
 				if(obj_reduced[i]<ideal_objectives[i])
 					ideal_objectives[i]=obj_reduced[i];
@@ -642,17 +690,18 @@ protected:
 			return ;
 		}
 		g2.chromosomes.clear();
-		const unsigned int N_robj=(unsigned int)distribution_objective_reductions(g.chromosomes[0].objectives).size();
+		if(!N_robj)
+			throw runtime_error("Number of the reduced objectives is zero. A68756541321");
 		const unsigned int N_chromosomes=(unsigned int)g.chromosomes.size();
 		Matrix zb_objectives(N_chromosomes,N_robj);
 		for(unsigned int i=0;i<N_chromosomes;i++)
 		{
-			std::vector<double> robj_x=distribution_objective_reductions(g.chromosomes[i].objectives);
+			vector<double> robj_x=distribution_objective_reductions(g.chromosomes[i].objectives);
 			for(unsigned int j=0;j<N_robj;j++)
 				zb_objectives(i,j)=(robj_x[j]-ideal_objectives[j]);
 		}
 		scalarize_objectives(zb_objectives);
-		std::vector<double> intercepts;
+		vector<double> intercepts;
 		build_hyperplane_intercepts(intercepts);
 		Matrix norm_objectives((unsigned int)g.chromosomes.size(),(unsigned int)intercepts.size());
 		for(unsigned int i=0;i<N_chromosomes;i++)
@@ -668,10 +717,10 @@ protected:
 			unsigned int obj_dept=(unsigned int)distribution_objective_reductions(g.chromosomes[0].objectives).size();
 			reference_vectors=generate_referenceVectors(obj_dept,reference_vector_divisions);
 		}
-		std::vector<unsigned int> associated_ref_vector;
-		std::vector<double> distance_ref_vector;
+		vector<unsigned int> associated_ref_vector;
+		vector<double> distance_ref_vector;
 
-		std::vector<unsigned int> niche_count;
+		vector<unsigned int> niche_count;
 		Matrix distances; // row: pop, col: ref_vec
 		associate_to_references(
 			g,
@@ -689,15 +738,15 @@ protected:
 				g2.chromosomes.push_back(g.chromosomes[i]);
 			last_front_index++;
 		}
-		std::vector<unsigned int> last_front=g.fronts[last_front_index];
+		vector<unsigned int> last_front=g.fronts[last_front_index];
 		// select randomly from the next front
-		std::vector<unsigned int> to_add;
+		vector<unsigned int> to_add;
 		while(g2.chromosomes.size()+to_add.size()<population)
 		{
 			if(!enable_reference_vectors)
 			{ // disabling reference points
 				unsigned int msz=(unsigned int)last_front.size();
-				unsigned int to_add_index=(unsigned int)std::floor(msz*rand());
+				unsigned int to_add_index=(unsigned int)std::floor(msz*rnd01());
 				if(to_add_index>=msz)
 					to_add_index=0;
 				to_add.push_back(last_front[to_add_index]);
@@ -706,7 +755,7 @@ protected:
 			}
 
 			unsigned int min_niche_index=index_of_min(niche_count);
-			std::vector<unsigned int> min_vec_neighbors;
+			vector<unsigned int> min_vec_neighbors;
 			for(unsigned int i:last_front)
 			{
 				if(associated_ref_vector[i]==min_niche_index)
@@ -731,7 +780,7 @@ protected:
 			else
 			{
 				unsigned int msz=(unsigned int)min_vec_neighbors.size();
-				next_member_index=(unsigned int)(std::floor(msz*rand()));
+				next_member_index=(unsigned int)(std::floor(msz*rnd01()));
 				if(next_member_index>=msz)
 					next_member_index=0;
 			}
@@ -754,9 +803,9 @@ protected:
 	void associate_to_references(
 		const thisGenerationType &gen,
 		const Matrix &norm_objectives,
-		std::vector<unsigned int> &associated_ref_vector,
-		std::vector<double> &distance_ref_vector,
-		std::vector<unsigned int> &niche_count,
+		vector<unsigned int> &associated_ref_vector,
+		vector<double> &distance_ref_vector,
+		vector<unsigned int> &niche_count,
 		Matrix &distances)
 	{
 		unsigned int N_ref=reference_vectors.get_n_rows();
@@ -771,13 +820,13 @@ protected:
 			unsigned int dist_min_index=0; // to avoid uninitialization warning
 			for(unsigned int j=0;j<N_ref;j++)
 			{
-				std::vector<double> reference_vectors_row_j;
+				vector<double> reference_vectors_row_j;
 				reference_vectors.get_row(j,reference_vectors_row_j);
 				double ref_vec_j_norm2=norm2(reference_vectors_row_j);
-				std::vector<double> w=reference_vectors_row_j;
+				vector<double> w=reference_vectors_row_j;
 				for(double &x:w)
 					x/=ref_vec_j_norm2;
-				std::vector<double> norm_obj;
+				vector<double> norm_obj;
 				norm_objectives.get_row(i,norm_obj);
 				assert(w.size()==norm_obj.size() && "Vector size mismatch! A349687921");
 				double scalar_wtnorm=0.0;
@@ -803,7 +852,7 @@ protected:
 		}
 	}
 
-	void build_hyperplane_intercepts(std::vector<double> &xinv)
+	void build_hyperplane_intercepts(vector<double> &xinv)
 	{
 		/*
 			solves A^T*x=[1]
@@ -836,7 +885,7 @@ protected:
 				}
 			}
 		}
-		std::vector<double> y(n);
+		vector<double> y(n);
 		for(int i=0;i<n;i++)
 		{
 			double sum=0.0;
@@ -844,7 +893,7 @@ protected:
 				sum+=(L(i,k)*y[k]);
 			y[i]=(1.0-sum)/L(i,i);
 		}
-		std::vector<double> x(n);
+		vector<double> x(n);
 		for(int ii=0;ii<n;ii++)
 		{
 			int i=n-1-ii;
@@ -859,7 +908,7 @@ protected:
 	}
 
 	template<typename T>
-	unsigned int index_of_min(const std::vector<T> &v)
+	unsigned int index_of_min(const vector<T> &v)
 	{
 		return (unsigned int)(std::distance(v.begin(), std::min_element(v.begin(), v.end())));
 	}
@@ -874,11 +923,11 @@ protected:
 		}
 		for(unsigned int i=0;i<N_objectives;i++)
 		{
-			std::vector<double> w;
+			vector<double> w;
 			w.assign(N_objectives,1e-10);
 			w[i]=1.0;
 			int Nx=zb_objectives.get_n_rows();
-			std::vector<double> s(Nx);
+			vector<double> s(Nx);
 			for(int j=0;j<Nx;j++)
 			{
 				double val_max=-1.0e300;
@@ -908,20 +957,20 @@ protected:
 		}
 
 		if(verbose)
-			std::cout<<"Transfered elites: ";
-		std::vector<int> blocked;
+			cout<<"Transfered elites: ";
+		vector<int> blocked;
 		for(int i=0;i<elite_count;i++)
 		{
 			g2.chromosomes.push_back(g.chromosomes[g.sorted_indices[i]]);
 			blocked.push_back(g.sorted_indices[i]);
 			if(verbose)
 			{
-				std::cout<<(i==0?"":", ");
-				std::cout<<(g.sorted_indices[i]+1);
+				cout<<(i==0?"":", ");
+				cout<<(g.sorted_indices[i]+1);
 			}
 		}
 		if(verbose)
-			std::cout<<std::endl;
+			cout<<endl;
 		for(int i=0;i<int(population)-elite_count;i++)
 		{
 			int j;
@@ -938,7 +987,7 @@ protected:
 			blocked.push_back(g.sorted_indices[j]);
 		}
 		if(verbose)
-			std::cout<<"Selection done."<<std::endl;
+			cout<<"Selection done."<<endl;
 	}
 
 	void rank_population(thisGenerationType &gen)
@@ -952,7 +1001,7 @@ protected:
 			rank_population_MO(gen);
 	}
 
-	void quicksort_indices_SO(std::vector<int> &array_indices,const thisGenerationType &gen,int left ,int right)
+	void quicksort_indices_SO(vector<int> &array_indices,const thisGenerationType &gen,int left ,int right)
 	{
 		if(left<right)
 		{
@@ -991,7 +1040,7 @@ protected:
 
 		quicksort_indices_SO(gen.sorted_indices,gen,0,int(gen.sorted_indices.size())-1);
 
-		std::vector<int> ranks;
+		vector<int> ranks;
 		ranks.assign(gen.chromosomes.size(),0);
 		for(unsigned int i=0;i<gen.chromosomes.size();i++)
 				ranks[gen.sorted_indices[i]]=i;
@@ -999,7 +1048,7 @@ protected:
 		generate_selection_chance(gen,ranks);
 	}
 
-	void generate_selection_chance(thisGenerationType &gen,const std::vector<int> &rank)
+	void generate_selection_chance(thisGenerationType &gen,const vector<int> &rank)
 	{
 		double chance_cumulative=0.0;
 		unsigned int N=(unsigned int)gen.chromosomes.size();
@@ -1018,8 +1067,8 @@ protected:
 
 	void rank_population_MO(thisGenerationType &gen)
 	{
-		std::vector<std::vector<unsigned int>> domination_set;
-		std::vector<int> dominated_count;
+		vector<vector<unsigned int>> domination_set;
+		vector<int> dominated_count;
 		domination_set.reserve(gen.chromosomes.size());
 		dominated_count.reserve(gen.chromosomes.size());
 		for(unsigned int i=0;i<gen.chromosomes.size();i++)
@@ -1027,7 +1076,7 @@ protected:
 			domination_set.push_back({});
 			dominated_count.push_back(0);
 		}
-		std::vector<unsigned int> pareto_front;
+		vector<unsigned int> pareto_front;
 
 		for(unsigned int i=0;i<gen.chromosomes.size();i++)
 		{
@@ -1049,11 +1098,11 @@ protected:
 		}
 		gen.fronts.clear();
 		gen.fronts.push_back(pareto_front);
-		std::vector<unsigned int> next_front;
+		vector<unsigned int> next_front;
 		do
 		{
 			next_front.clear();
-			std::vector<unsigned int> &last_front=gen.fronts[gen.fronts.size()-1];
+			vector<unsigned int> &last_front=gen.fronts[gen.fronts.size()-1];
 			for(unsigned int i:last_front)
 				for(unsigned int j:domination_set[i])
 					if(--dominated_count[j]==0)
@@ -1061,7 +1110,7 @@ protected:
 			if(!next_front.empty())
 				gen.fronts.push_back(next_front);
 		} while (!next_front.empty());
-		std::vector<int> ranks;
+		vector<int> ranks;
 		ranks.assign(gen.chromosomes.size(),0);
 		for(unsigned int i=0;i<gen.fronts.size();i++)
 			for(unsigned int j=0;j<gen.fronts[i].size();j++)
@@ -1072,7 +1121,7 @@ protected:
 	bool Dominates(thisChromosomeType a,thisChromosomeType b)
 	{
 		if(a.objectives.size()!=b.objectives.size())
-			throw std::runtime_error("vector size mismatch A73592753!");
+			throw runtime_error("vector size mismatch A73592753!");
 		for(unsigned int i=0;i<a.objectives.size();i++)
 			if(a.objectives[i]>b.objectives[i])
 				return false;
@@ -1082,25 +1131,25 @@ protected:
 		return false;
 	}
 
-	std::vector<std::vector<double>> 
+	vector<vector<double>> 
 		generate_integerReferenceVectors(int dept,int N_division)
 	{
 		if(dept<1)
-			throw std::runtime_error("wrong vector dept!");
+			throw runtime_error("wrong vector dept!");
 		if(dept==1)
 		{
 			return {{(double)N_division}};
 		}
-		std::vector<std::vector<double>> result;
+		vector<vector<double>> result;
 		for(int i=0;i<=N_division;i++)
 		{
-			std::vector<std::vector<double>> tail;
+			vector<vector<double>> tail;
 			tail=generate_integerReferenceVectors(dept-1,N_division-i);
 
 			for(int j=0;j<int(tail.size());j++)
 			{
-				std::vector<double> v1=tail[j];
-				std::vector<double> v2(v1.size()+1);
+				vector<double> v1=tail[j];
+				vector<double> v2(v1.size()+1);
 				v2[0]=i;
 				for(int k=0;k<int(v1.size());k++)
 				{
@@ -1130,7 +1179,7 @@ protected:
 			case GA_MODE::IGA:		return true;
 			case GA_MODE::NSGA_III:	return false;
 			default:
-				throw std::runtime_error("Code should not reach here!");
+				throw runtime_error("Code should not reach here!");
 		}
 	}
 
@@ -1142,7 +1191,7 @@ protected:
 			case GA_MODE::IGA:		return true;
 			case GA_MODE::NSGA_III:	return false;
 			default:
-				throw std::runtime_error("Code should not reach here!");
+				throw runtime_error("Code should not reach here!");
 		}
 	}
 
@@ -1169,7 +1218,7 @@ protected:
 		while(!accepted)
 		{
 			thisChromosomeType X;
-			init_genes(X.genes,[this](){return rand();});
+			init_genes(X.genes,[this](){return rnd01();});
 			if(is_interactive())
 			{
 				if(eval_genes_IGA(X.genes,X.middle_costs,*p_generation0))
@@ -1218,12 +1267,12 @@ protected:
 		{
 			for(unsigned int i=0;i<population;i++)
 				generation0.chromosomes.push_back(thisChromosomeType());
-			std::vector<int> active_threads; // std::vector<bool> is broken
+			vector<int> active_threads; // vector<bool> is broken
 			active_threads.assign(N_threads,0);
-			std::vector<unsigned int> attempts;
+			vector<unsigned int> attempts;
 			attempts.assign(N_threads,0);
 
-			std::vector<std::thread> thread_pool;
+			vector<std::thread> thread_pool;
 			for(int i=0;i<N_threads;i++)
 				thread_pool.push_back(std::thread());
 			for(std::thread& th : thread_pool)
@@ -1318,11 +1367,11 @@ protected:
 
 		if(verbose)
 		{
-			std::cout<<"Initial population of "<<population<<" was created with "<<total_attempts<<" attemps."<<std::endl;
+			cout<<"Initial population of "<<population<<" was created with "<<total_attempts<<" attemps."<<endl;
 		}
 	}
 
-	double rand()
+	double rnd01()
 	{
 		return unif_dist(rng);
 	}
@@ -1330,7 +1379,7 @@ protected:
 	int select_parent(const thisGenerationType &g)
 	{
 		int N_max=int(g.chromosomes.size());
-		double r=rand();
+		double r=rnd01();
 		int position=0;
 		while(position<N_max && g.selection_chance_cumulative[position]<r)
 			position++;
@@ -1358,7 +1407,7 @@ protected:
 	{
 
 		if(verbose)
-			std::cout<<"Action: crossover"<<std::endl;
+			cout<<"Action: crossover"<<endl;
 
 		bool successful=false;
 		while(!successful)
@@ -1370,15 +1419,15 @@ protected:
 			if(pidx_c1==pidx_c2)
 				continue ;
 			if(verbose)
-				std::cout<<"Crossover of chromosomes "<<pidx_c1<<","<<pidx_c2<<std::endl;
+				cout<<"Crossover of chromosomes "<<pidx_c1<<","<<pidx_c2<<endl;
 			GeneType Xp1=last_generation.chromosomes[pidx_c1].genes;
 			GeneType Xp2=last_generation.chromosomes[pidx_c2].genes;
-			X.genes=crossover(Xp1,Xp2,[this](){return rand();});
-			if(rand()<=mutation_rate)
+			X.genes=crossover(Xp1,Xp2,[this](){return rnd01();});
+			if(rnd01()<=mutation_rate)
 			{
 				if(verbose)
-					std::cout<<"Mutation of chromosome "<<std::endl;
-				X.genes=mutate(X.genes,[this](){return rand();},shrink_scale);
+					cout<<"Mutation of chromosome "<<endl;
+				X.genes=mutate(X.genes,[this](){return rnd01();},shrink_scale);
 			}
 			if(is_interactive())
 			{
@@ -1409,9 +1458,9 @@ protected:
 			return ;
 
 		if(crossover_fraction<=0.0 || crossover_fraction>1.0)
-			throw std::runtime_error("Wrong crossover fractoin");
+			throw runtime_error("Wrong crossover fractoin");
 		if(mutation_rate<0.0 || mutation_rate>1.0)
-			throw std::runtime_error("Wrong mutation rate");
+			throw runtime_error("Wrong mutation rate");
 		if(generation_step<=0)
 			return ;
 		unsigned int N_add=(unsigned int)(std::round(double(population)*(crossover_fraction)));
@@ -1419,7 +1468,7 @@ protected:
 		if(is_interactive())
 		{
 			if(N_add+elite_count!=population)
-				throw std::runtime_error("In IGA mode, elite fraction + crossover fraction must be equal to 1.0 !");
+				throw runtime_error("In IGA mode, elite fraction + crossover fraction must be equal to 1.0 !");
 		}
 
 		if(!multi_threading || N_threads==1 || is_interactive())
@@ -1432,10 +1481,10 @@ protected:
 		{
 			for(unsigned int i=0;i<N_add;i++)
 				new_generation.chromosomes.push_back(thisChromosomeType());
-			std::vector<int> active_threads; // std::vector<bool> is broken
+			vector<int> active_threads; // vector<bool> is broken
 			active_threads.assign(N_threads,0);
 
-			std::vector<std::thread> thread_pool;
+			vector<std::thread> thread_pool;
 			for(int i=0;i<N_threads;i++)
 				thread_pool.push_back(std::thread());
 			for(std::thread& th : thread_pool)
@@ -1582,7 +1631,7 @@ protected:
 					g.chromosomes[i].objectives=calculate_MO_objectives(g.chromosomes[i]);
 				break;
 			default:
-				throw std::runtime_error("Code should not reach here!");
+				throw runtime_error("Code should not reach here!");
 		}
 
 	}

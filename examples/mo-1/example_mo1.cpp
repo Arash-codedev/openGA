@@ -31,10 +31,10 @@ struct MyMiddleCost
 typedef EA::Genetic<MyGenes,MyMiddleCost> GA_Type;
 typedef EA::GenerationType<MyGenes,MyMiddleCost> Generation_Type;
 
-void init_genes(MyGenes& p,const std::function<double(void)> &rand)
+void init_genes(MyGenes& p,const std::function<double(void)> &rnd01)
 {
-	p.x=10.0*rand();
-	p.y=10.0*rand();
+	p.x=10.0*rnd01();
+	p.y=10.0*rnd01();
 }
 
 bool eval_genes(
@@ -51,25 +51,20 @@ bool eval_genes(
 
 MyGenes mutate(
 	const MyGenes& X_base,
-	const std::function<double(void)> &rand,
+	const std::function<double(void)> &rnd01,
 	double shrink_scale)
 {
 	MyGenes X_new;
-	double loca_scale=shrink_scale;
-	if(rand()<0.4)
-		loca_scale*=loca_scale;
-	else if(rand()<0.1)
-		loca_scale=1.0;
-	bool in_range_x,in_range_y;
 	double local_scale=shrink_scale;
-	if(rand()<0.4)
+	if(rnd01()<0.4)
 		local_scale*=local_scale;
-	else if(rand()<0.1)
+	else if(rnd01()<0.1)
 		local_scale=1.0;
+	bool in_range_x,in_range_y;
 	do{
 		X_new=X_base;
-		X_new.x+=0.2*(rand()-rand())*local_scale;
-		X_new.y+=0.2*(rand()-rand())*local_scale;
+		X_new.x+=0.2*(rnd01()-rnd01())*local_scale;
+		X_new.y+=0.2*(rnd01()-rnd01())*local_scale;
 		in_range_x= (X_new.x>=0.0 && X_new.x<10.0);
 		in_range_y= (X_new.y>=0.0 && X_new.y<10.0);
 	} while(!in_range_x || !in_range_y);
@@ -79,13 +74,13 @@ MyGenes mutate(
 MyGenes crossover(
 	const MyGenes& X1,
 	const MyGenes& X2,
-	const std::function<double(void)> &rand)
+	const std::function<double(void)> &rnd01)
 {
 	MyGenes X_new;
 	double r;
-	r=rand();
+	r=rnd01();
 	X_new.x=r*X1.x+(1.0-r)*X2.x;
-	r=rand();
+	r=rnd01();
 	X_new.y=r*X1.y+(1.0-r)*X2.y;
 	return X_new;
 }

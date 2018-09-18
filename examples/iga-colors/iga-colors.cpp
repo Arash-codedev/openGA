@@ -31,11 +31,11 @@ struct MyMiddleCost
 typedef EA::Genetic<MyGenes,MyMiddleCost> GA_Type;
 typedef EA::GenerationType<MyGenes,MyMiddleCost> Generation_Type;
 
-void init_genes(MyGenes& p,const std::function<double(void)> &rand)
+void init_genes(MyGenes& p,const std::function<double(void)> &rnd01)
 {
-	p.R=255.0*rand();
-	p.G=255.0*rand();
-	p.B=255.0*rand();
+	p.R=255.0*rnd01();
+	p.G=255.0*rnd01();
+	p.B=255.0*rnd01();
 }
 
 bool eval_genes_IGA(
@@ -51,7 +51,7 @@ bool eval_genes_IGA(
 
 MyGenes mutate(
 	const MyGenes& X_base,
-	const std::function<double(void)> &rand,
+	const std::function<double(void)> &rnd01,
 	double shrink_scale)
 {
 	MyGenes X_new;
@@ -59,9 +59,9 @@ MyGenes mutate(
 	bool in_range_R,in_range_G,in_range_B;
 	do{
 		X_new=X_base;
-		X_new.R+=100*(rand()-rand());
-		X_new.G+=100*(rand()-rand());
-		X_new.B+=100*(rand()-rand());
+		X_new.R+=100*(rnd01()-rnd01());
+		X_new.G+=100*(rnd01()-rnd01());
+		X_new.B+=100*(rnd01()-rnd01());
 		in_range_R= (X_new.R>=0.0 && X_new.R<255.0);
 		in_range_G= (X_new.G>=0.0 && X_new.G<255.0);
 		in_range_B= (X_new.B>=0.0 && X_new.B<255.0);
@@ -72,15 +72,15 @@ MyGenes mutate(
 MyGenes crossover(
 	const MyGenes& X1,
 	const MyGenes& X2,
-	const std::function<double(void)> &rand)
+	const std::function<double(void)> &rnd01)
 {
 	MyGenes X_new;
 	double r;
-	r=rand();
+	r=rnd01();
 	X_new.R=r*X1.R+(1.0-r)*X2.R;
-	r=rand();
+	r=rnd01();
 	X_new.G=r*X1.G+(1.0-r)*X2.G;
-	r=rand();
+	r=rnd01();
 	X_new.B=r*X1.B+(1.0-r)*X2.B;
 	return X_new;
 }
