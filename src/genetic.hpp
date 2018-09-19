@@ -1118,7 +1118,7 @@ protected:
 		generate_selection_chance(gen,ranks);
 	}
 
-	bool Dominates(thisChromosomeType a,thisChromosomeType b)
+	bool Dominates(const thisChromosomeType &a,const thisChromosomeType &b)
 	{
 		if(a.objectives.size()!=b.objectives.size())
 			throw runtime_error("vector size mismatch A73592753!");
