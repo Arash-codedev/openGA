@@ -2,10 +2,11 @@
 // Mozilla Public License Version 2.0.
 
 #include <string>
-#include "genetic.hpp"
+#include <iostream>
 #include <fstream>
+#include "openga.hpp"
 
-struct MyGenes
+struct MySolution
 {
 	double x;
 	double y;
@@ -27,17 +28,17 @@ struct MyMiddleCost
 	double cost_sqsin;
 };
 
-typedef EA::Genetic<MyGenes,MyMiddleCost> GA_Type;
-typedef EA::GenerationType<MyGenes,MyMiddleCost> Generation_Type;
+typedef EA::Genetic<MySolution,MyMiddleCost> GA_Type;
+typedef EA::GenerationType<MySolution,MyMiddleCost> Generation_Type;
 
-void init_genes(MyGenes& p,const std::function<double(void)> &rnd01)
+void init_genes(MySolution& p,const std::function<double(void)> &rnd01)
 {
 	p.x=20.0*rnd01()-10.0;
 	p.y=20.0*rnd01()-10.0;
 }
 
-bool eval_genes(
-	const MyGenes& p,
+bool eval_solution(
+	const MySolution& p,
 	MyMiddleCost &c)
 {
 	double x=p.x;
@@ -57,34 +58,29 @@ bool eval_genes(
 		return false; // genes are rejected
 }
 
-MyGenes mutate(
-	const MyGenes& X_base,
+MySolution mutate(
+	const MySolution& X_base,
 	const std::function<double(void)> &rnd01,
 	double shrink_scale)
 {
-	MyGenes X_new;
+	MySolution X_new;
 	bool in_range_x,in_range_y;
-	double local_scale=shrink_scale;
-	if(rnd01()<0.4)
-		local_scale*=local_scale;
-	else if(rnd01()<0.1)
-		local_scale=1.0;
 	do{
 		X_new=X_base;
-		X_new.x+=0.2*(rnd01()-rnd01())*local_scale;
-		X_new.y+=0.2*(rnd01()-rnd01())*local_scale;
+		X_new.x+=0.2*(rnd01()-rnd01())*shrink_scale;
+		X_new.y+=0.2*(rnd01()-rnd01())*shrink_scale;
 		in_range_x= (X_new.x>=-10.0 && X_new.x<10.0);
 		in_range_y= (X_new.y>=-10.0 && X_new.y<10.0);
 	} while(!in_range_x || !in_range_y);
 	return X_new;
 }
 
-MyGenes crossover(
-	const MyGenes& X1,
-	const MyGenes& X2,
+MySolution crossover(
+	const MySolution& X1,
+	const MySolution& X2,
 	const std::function<double(void)> &rnd01)
 {
-	MyGenes X_new;
+	MySolution X_new;
 	double r;
 	r=rnd01();
 	X_new.x=r*X1.x+(1.0-r)*X2.x;
@@ -106,8 +102,8 @@ std::ofstream output_file;
 
 void SO_report_generation(
 	int generation_number,
-	const EA::GenerationType<MyGenes,MyMiddleCost> &last_generation,
-	const MyGenes& best_genes)
+	const EA::GenerationType<MySolution,MyMiddleCost> &last_generation,
+	const MySolution& best_genes)
 {
 	std::cout
 		<<"Generation ["<<generation_number<<"], "
@@ -140,9 +136,9 @@ int main()
 	ga_obj.verbose=false;
 	ga_obj.population=20;
 	ga_obj.generation_max=1000;
-	ga_obj.calculate_SO_total_fitness= calculate_SO_total_fitness;
+	ga_obj.calculate_SO_total_fitness=calculate_SO_total_fitness;
 	ga_obj.init_genes= init_genes;
-	ga_obj.eval_genes= eval_genes;
+	ga_obj.eval_solution= eval_solution;
 	ga_obj.mutate= mutate;
 	ga_obj.crossover= crossover;
 	ga_obj.SO_report_generation= SO_report_generation;

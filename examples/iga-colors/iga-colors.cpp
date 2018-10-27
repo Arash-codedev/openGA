@@ -2,11 +2,11 @@
 // Mozilla Public License Version 2.0.
 
 #include <string>
-#include "genetic.hpp"
+#include "openga.hpp"
 #include "gui.hpp"
 #include <fstream>
 
-struct MyGenes
+struct MySolution
 {
 	double R,G,B;
 
@@ -28,20 +28,20 @@ struct MyMiddleCost
 	double cost_user_score;
 };
 
-typedef EA::Genetic<MyGenes,MyMiddleCost> GA_Type;
-typedef EA::GenerationType<MyGenes,MyMiddleCost> Generation_Type;
+typedef EA::Genetic<MySolution,MyMiddleCost> GA_Type;
+typedef EA::GenerationType<MySolution,MyMiddleCost> Generation_Type;
 
-void init_genes(MyGenes& p,const std::function<double(void)> &rnd01)
+void init_genes(MySolution& p,const std::function<double(void)> &rnd01)
 {
 	p.R=255.0*rnd01();
 	p.G=255.0*rnd01();
 	p.B=255.0*rnd01();
 }
 
-bool eval_genes_IGA(
-	const MyGenes& p,
+bool eval_solution_IGA(
+	const MySolution& p,
 	MyMiddleCost &c,
-	const EA::GenerationType<MyGenes,MyMiddleCost>&)
+	const EA::GenerationType<MySolution,MyMiddleCost>&)
 {
 	c.R=p.R;
 	c.G=p.G;
@@ -49,12 +49,12 @@ bool eval_genes_IGA(
 	return true; // genes are accepted
 }
 
-MyGenes mutate(
-	const MyGenes& X_base,
+MySolution mutate(
+	const MySolution& X_base,
 	const std::function<double(void)> &rnd01,
 	double shrink_scale)
 {
-	MyGenes X_new;
+	MySolution X_new;
 	(void) shrink_scale;
 	bool in_range_R,in_range_G,in_range_B;
 	do{
@@ -69,12 +69,12 @@ MyGenes mutate(
 	return X_new;
 }
 
-MyGenes crossover(
-	const MyGenes& X1,
-	const MyGenes& X2,
+MySolution crossover(
+	const MySolution& X1,
+	const MySolution& X2,
 	const std::function<double(void)> &rnd01)
 {
-	MyGenes X_new;
+	MySolution X_new;
 	double r;
 	r=rnd01();
 	X_new.R=r*X1.R+(1.0-r)*X2.R;
@@ -108,8 +108,8 @@ std::ofstream output_file;
 
 void SO_report_generation(
 	int generation_number,
-	const EA::GenerationType<MyGenes,MyMiddleCost> &last_generation,
-	const MyGenes& best_genes)
+	const EA::GenerationType<MySolution,MyMiddleCost> &last_generation,
+	const MySolution& best_genes)
 {
 	std::cout
 		<<"Generation ["<<generation_number<<"], "
@@ -137,9 +137,9 @@ int main()
 	ga_obj.verbose=false;
 	ga_obj.population=15;
 	ga_obj.generation_max=20;
-	ga_obj.calculate_IGA_total_fitness= calculate_IGA_total_fitness;
+	ga_obj.calculate_IGA_total_fitness=calculate_IGA_total_fitness;
 	ga_obj.init_genes= init_genes;
-	ga_obj.eval_genes_IGA= eval_genes_IGA;
+	ga_obj.eval_solution_IGA= eval_solution_IGA;
 	ga_obj.mutate= mutate;
 	ga_obj.crossover= crossover;
 	ga_obj.SO_report_generation= SO_report_generation;

@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<title>title</title>
+	<link rel="stylesheet" href="styles.css" type="text/css">
+</head>
+<body>
+	<div class="wrapper">
+		<div class="content">
+			<h1 class="title">OpenGA assist</h1>
+			<div class="center">
+				Select your GA preferences:
+			</div>
+			<span class="separator"></span>
+<!-- ********************************* -->
+			<div class="row">
+				<div class="cell_label_l">
+					Population size:
+				</div>
+				<div class="cell_input">
+					<select onchange="update_codes()" name="population">
+						<option value="small">Small</option>
+						<option value="medium" selected>Medium</option>
+						<option value="large">Large</option>
+					</select>
+				</div>
+			</div>
+<!-- ********************************* -->
+			<div class="row">
+				<div class="cell_label_l">
+					Verbose:
+				</div>
+				<div class="cell_input">
+					<select onchange="update_codes()" name="verbose">
+						<option value="false" selected>False</option>
+						<option value="true">True</option>
+					</select>
+				</div>
+			</div>
+<!-- ********************************* -->
+			<div class="row">
+				<div class="cell_label_l">
+					How long does it take to evaluate a single solution?
+				</div>
+				<div class="cell_input">
+					<select onchange="update_codes()" name="heavyness">
+						<option value="light" selected>0-10ms</option>
+						<option value="medium">10ms-1s</option>
+						<option value="heavy">&gt;1s</option>
+					</select>
+				</div>
+			</div>
+<!-- ********************************* -->
+			<div class="row">
+				<div class="cell_label_l">
+					Number of objectives:
+				</div>
+				<div class="cell_input">
+					<select onchange="update_codes()" name="objnum">
+						<option value="single" selected>Single</option>
+						<option value="multiple">Multiple</option>
+					</select>
+				</div>
+			</div>
+<!-- ********************************* -->
+			<span class="separator"></span>
+			<div class="row">
+				<div class="cell_label_l">Solution name:</div>
+				<div class="cell_input">
+					<input type="text" class="short_text" name="solution_name" value="MySolution" onchange="update_codes()">
+				</div>
+			</div>
+			<div class="row">
+				<div class="cell_label_l">Evaluation result name:</div>
+				<div class="cell_input">
+					<input type="text" class="short_text" name="eval_name" value="MyMiddleCost" onchange="update_codes()">
+				</div>
+			</div>
+			<span class="separator"></span>
+<!-- ********************************* -->
+			<div class="row">
+				<div class="center">List the name of optimization variables:</div>
+				<div id="opt_var">
+				</div>
+				<div class="add_more">
+					<button onclick="add_more_var()">add more</button>
+				</div>
+			</div>
+<!-- ********************************* -->
+			<span class="separator"></span>
+<!-- ********************************* -->
+			<div class="row">
+				<div class="center">List your objectives:</div>
+				<div id="opt_obj">
+				</div>
+				<div class="add_more">
+					<button onclick="add_more_obj()">add more</button>
+				</div>
+			</div>
+<!-- ********************************* -->
+			<span class="separator"></span>
+<!-- ********************************* -->
+<!-- 			<div class="give_code">
+				<button onclick="give_me_code()">Give me the code</button>
+			</div>
+ -->
+ <!-- ********************************* -->
+			<span class="separator"></span>
+			<div class="disclaimer">
+				Disclaimer: This tool is to assist the programmer for generating codes rapidly.
+				The generated code should be edited and tailored to the application.
+				There is no warranty that this code works, being correct, being optimal, etc.
+				This code assist also does not work properly with non-floating point operations.
+				The author does not accept any responsibility too.
+			</div>
+			<span class="separator"></span>
+<!-- ********************************* -->
+			<span class="separator"></span>
+			<!-- <div class="row"> -->
+				<div class="center">Generated code:</div>
+			<!-- </div> -->
+			<div id="code">
+				Generated code ...
+			</div>
+			<span class="separator"></span>
+<!-- ********************************* -->
+		</div>
+	</div>
+<script src="jquery.min.js"></script>
+<script src="main.js"></script>
+</body>
+</html>

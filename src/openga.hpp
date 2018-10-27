@@ -250,7 +250,7 @@ private:
 	Matrix extreme_objectives;	// for multi-objective
 	vector<double> scalarized_objectives_min;	// for multi-objective
 	Matrix reference_vectors;
-	double shrink_scale;
+	// double shrink_scale;
 	unsigned int N_robj;
 public:
 
@@ -284,16 +284,15 @@ public:
 	function<double(const thisChromosomeType&)> calculate_SO_total_fitness;
 	function<vector<double>(thisChromosomeType&)> calculate_MO_objectives;
 	function<vector<double>(const vector<double>&)> distribution_objective_reductions;
-	function<void(GeneType&,const function<double(void)> &rand)> init_genes;
-	function<bool(const GeneType&,MiddleCostType&)> eval_genes;
-	function<bool(const GeneType&,MiddleCostType&,const thisGenerationType&)> eval_genes_IGA;
-	function<GeneType(const GeneType&,const function<double(void)> &rand,double shrink_scale)> mutate;
-	function<GeneType(const GeneType&,const GeneType&,const function<double(void)> &rand)> crossover;
+	function<void(GeneType&,const function<double(void)> &rnd01)> init_genes;
+	function<bool(const GeneType&,MiddleCostType&)> eval_solution;
+	function<bool(const GeneType&,MiddleCostType&,const thisGenerationType&)> eval_solution_IGA;
+	function<GeneType(const GeneType&,const function<double(void)> &rnd01,double shrink_scale)> mutate;
+	function<GeneType(const GeneType&,const GeneType&,const function<double(void)> &rnd01)> crossover;
 	function<void(int,const thisGenerationType&,const GeneType&)> SO_report_generation;
 	function<void(int,const thisGenerationType&,const vector<unsigned int>&)> MO_report_generation;
 	function<void(void)> custom_refresh;
-	function<double(int)> set_shrink_scale=[](int n){return (n<=5?1.0:1.0/sqrt(n-5+1));};
-
+	function<double(int,const function<double(void)> &rnd01)> get_shrink_scale;
 	vector<thisGenSOAbs> generations_so_abs;
 	thisGenerationType last_generation;
 
@@ -326,13 +325,14 @@ public:
 		calculate_MO_objectives(nullptr),
 		distribution_objective_reductions(nullptr),
 		init_genes(nullptr),
-		eval_genes(nullptr),
-		eval_genes_IGA(nullptr),
+		eval_solution(nullptr),
+		eval_solution_IGA(nullptr),
 		mutate(nullptr),
 		crossover(nullptr),
 		SO_report_generation(nullptr),
 		MO_report_generation(nullptr),
-		custom_refresh(nullptr)
+		custom_refresh(nullptr),
+		get_shrink_scale(default_shrink_scale)
 	{
 		// initialize the random number generator with time-dependent seed
 		uint64_t timeSeed = std::chrono::high_resolution_clock::now().time_since_epoch().count();
@@ -362,7 +362,10 @@ public:
 	{
 		if(!g.chromosomes.size())
 			throw runtime_error("Code should not reach here. A87946516564");
-		N_robj=(unsigned int)distribution_objective_reductions(g.chromosomes[0].objectives).size();
+		if(distribution_objective_reductions)
+			N_robj=(unsigned int)distribution_objective_reductions(g.chromosomes[0].objectives).size();
+		else
+			N_robj=(unsigned int)g.chromosomes[0].objectives.size();
 		if(!N_robj)
 			throw runtime_error("Number of the reduced objective is zero");
 	}
@@ -370,11 +373,10 @@ public:
 	void solve_init()
 	{
 		check_settings();
-		shrink_scale=1.0;
+		// shrink_scale=1.0;
 		average_stall_count=0;
 		best_stall_count=0;
 		generation_step=-1;
-
 
 		if(verbose)
 		{
@@ -401,6 +403,8 @@ public:
 			if(!reference_vector_divisions)
 			{
 				reference_vector_divisions=2;
+				if(N_robj==1)
+					throw std::runtime_error("The length of objective vector is 1 in a multi-objective optimization");
 				while(get_number_reference_vectors(N_robj,reference_vector_divisions+1)<=(int)population)
 					reference_vector_divisions++;
 				if(verbose)
@@ -433,7 +437,6 @@ public:
 		Chronometer timer;
 		timer.tic();
 		generation_step++;
-		shrink_scale=set_shrink_scale(generation_step);
 		thisGenerationType new_generation;
 		transfer(new_generation);
 		crossover_and_mutation(new_generation);
@@ -492,6 +495,22 @@ public:
 	}
 
 protected:
+
+	static double default_shrink_scale(int n_generation,const function<double(void)> &rnd01)
+	{
+		double scale=(n_generation<=5?1.0:1.0/sqrt(n_generation-5+1));
+		if(rnd01()<0.4)
+			scale*=scale;
+		else if(rnd01()<0.1)
+			scale=1.0;
+		return scale;
+	}
+
+	double random01()
+	{
+		return unif_dist(rng);
+	}
+
 
 	void report_generation(const thisGenerationType &new_generation)
 	{
@@ -588,19 +607,19 @@ protected:
 				throw runtime_error("distribution_objective_reductions is not null in interactive mode!");
 			if(MO_report_generation!=nullptr)
 				throw runtime_error("MO_report_generation is not null in interactive mode!");
-			if(eval_genes_IGA==nullptr)
-				throw runtime_error("eval_genes_IGA is null in interactive mode!");
-			if(eval_genes!=nullptr)
-				throw runtime_error("eval_genes is not null in interactive mode (use eval_genes_IGA instead)!");
+			if(eval_solution_IGA==nullptr)
+				throw runtime_error("eval_solution_IGA is null in interactive mode!");
+			if(eval_solution!=nullptr)
+				throw runtime_error("eval_solution is not null in interactive mode (use eval_solution_IGA instead)!");
 		}
 		else
 		{
 			if(calculate_IGA_total_fitness!=nullptr)
 				throw runtime_error("calculate_IGA_total_fitness is not null in non-interactive mode!");
-			if(eval_genes_IGA!=nullptr)
-				throw runtime_error("eval_genes_IGA is not null in non-interactive mode!");
-			if(eval_genes==nullptr)
-				throw runtime_error("eval_genes is null!");
+			if(eval_solution_IGA!=nullptr)
+				throw runtime_error("eval_solution_IGA is not null in non-interactive mode!");
+			if(eval_solution==nullptr)
+				throw runtime_error("eval_solution is null!");
 			if(is_single_objective())
 			{
 				if(calculate_SO_total_fitness==nullptr)
@@ -618,8 +637,8 @@ protected:
 					throw runtime_error("calculate_SO_total_fitness is no null in multi-objective mode!");
 				if(calculate_MO_objectives==nullptr)
 					throw runtime_error("calculate_MO_objectives is null in multi-objective mode!");
-				if(distribution_objective_reductions==nullptr)
-					throw runtime_error("distribution_objective_reductions is null in multi-objective mode!");
+				// if(distribution_objective_reductions==nullptr)
+				// 	throw runtime_error("distribution_objective_reductions is null in multi-objective mode!");
 				if(MO_report_generation==nullptr)
 					throw runtime_error("MO_report_generation is null in multi-objective mode!");
 			}
@@ -670,11 +689,20 @@ protected:
 		if(is_single_objective())
 			throw runtime_error("Wrong code A0812473247.");
 		if(reset)
-			ideal_objectives=distribution_objective_reductions(g.chromosomes[0].objectives);
+		{
+			if(distribution_objective_reductions)
+				ideal_objectives=distribution_objective_reductions(g.chromosomes[0].objectives);
+			else
+				ideal_objectives=g.chromosomes[0].objectives;
+		}
 		unsigned int N_r_objectives=(unsigned int)ideal_objectives.size();
 		for(thisChromosomeType x:g.chromosomes)
 		{
-			vector<double> obj_reduced=distribution_objective_reductions(x.objectives);
+			vector<double> obj_reduced;
+			if(distribution_objective_reductions)
+				obj_reduced=distribution_objective_reductions(x.objectives);
+			else
+				obj_reduced=x.objectives;
 			for(unsigned int i=0;i<N_r_objectives;i++)
 				if(obj_reduced[i]<ideal_objectives[i])
 					ideal_objectives[i]=obj_reduced[i];
@@ -696,7 +724,12 @@ protected:
 		Matrix zb_objectives(N_chromosomes,N_robj);
 		for(unsigned int i=0;i<N_chromosomes;i++)
 		{
-			vector<double> robj_x=distribution_objective_reductions(g.chromosomes[i].objectives);
+			vector<double> robj_x;
+			if(distribution_objective_reductions)
+				robj_x=distribution_objective_reductions(g.chromosomes[i].objectives);
+			else
+				robj_x=g.chromosomes[i].objectives;
+
 			for(unsigned int j=0;j<N_robj;j++)
 				zb_objectives(i,j)=(robj_x[j]-ideal_objectives[j]);
 		}
@@ -714,7 +747,11 @@ protected:
 		}
 		if(reference_vectors.empty())
 		{
-			unsigned int obj_dept=(unsigned int)distribution_objective_reductions(g.chromosomes[0].objectives).size();
+			unsigned int obj_dept;
+			if(distribution_objective_reductions)
+				obj_dept=(unsigned int)distribution_objective_reductions(g.chromosomes[0].objectives).size();
+			else
+				obj_dept=(unsigned int)g.chromosomes[0].objectives.size();
 			reference_vectors=generate_referenceVectors(obj_dept,reference_vector_divisions);
 		}
 		vector<unsigned int> associated_ref_vector;
@@ -746,7 +783,7 @@ protected:
 			if(!enable_reference_vectors)
 			{ // disabling reference points
 				unsigned int msz=(unsigned int)last_front.size();
-				unsigned int to_add_index=(unsigned int)std::floor(msz*rnd01());
+				unsigned int to_add_index=(unsigned int)std::floor(msz*random01());
 				if(to_add_index>=msz)
 					to_add_index=0;
 				to_add.push_back(last_front[to_add_index]);
@@ -780,7 +817,7 @@ protected:
 			else
 			{
 				unsigned int msz=(unsigned int)min_vec_neighbors.size();
-				next_member_index=(unsigned int)(std::floor(msz*rnd01()));
+				next_member_index=(unsigned int)(std::floor(msz*random01()));
 				if(next_member_index>=msz)
 					next_member_index=0;
 			}
@@ -1082,12 +1119,12 @@ protected:
 		{
 			for(unsigned int j=i+1;j<gen.chromosomes.size();j++)
 			{
-				if(Dominates(gen.chromosomes[i],gen.chromosomes[j]))
+				if(dominates(gen.chromosomes[i],gen.chromosomes[j]))
 				{
 					domination_set[i].push_back(j);
 					dominated_count[j]++;
 				}
-				if(Dominates(gen.chromosomes[j],gen.chromosomes[i]))
+				if(dominates(gen.chromosomes[j],gen.chromosomes[i]))
 				{
 					domination_set[j].push_back(i);
 					dominated_count[i]++;
@@ -1118,7 +1155,7 @@ protected:
 		generate_selection_chance(gen,ranks);
 	}
 
-	bool Dominates(const thisChromosomeType &a,const thisChromosomeType &b)
+	bool dominates(const thisChromosomeType &a,const thisChromosomeType &b)
 	{
 		if(a.objectives.size()!=b.objectives.size())
 			throw runtime_error("vector size mismatch A73592753!");
@@ -1218,10 +1255,10 @@ protected:
 		while(!accepted)
 		{
 			thisChromosomeType X;
-			init_genes(X.genes,[this](){return rnd01();});
+			init_genes(X.genes,[this](){return random01();});
 			if(is_interactive())
 			{
-				if(eval_genes_IGA(X.genes,X.middle_costs,*p_generation0))
+				if(eval_solution_IGA(X.genes,X.middle_costs,*p_generation0))
 				{
 					// in IGA mode, code cannot run in parallel.
 					p_generation0->chromosomes.push_back(X);
@@ -1230,7 +1267,7 @@ protected:
 			}
 			else
 			{
-				if(eval_genes(X.genes,X.middle_costs))
+				if(eval_solution(X.genes,X.middle_costs))
 				{
 					if(index>=0)
 						p_generation0->chromosomes[index]=X;
@@ -1371,15 +1408,10 @@ protected:
 		}
 	}
 
-	double rnd01()
-	{
-		return unif_dist(rng);
-	}
-
 	int select_parent(const thisGenerationType &g)
 	{
 		int N_max=int(g.chromosomes.size());
-		double r=rnd01();
+		double r=random01();
 		int position=0;
 		while(position<N_max && g.selection_chance_cumulative[position]<r)
 			position++;
@@ -1422,16 +1454,17 @@ protected:
 				cout<<"Crossover of chromosomes "<<pidx_c1<<","<<pidx_c2<<endl;
 			GeneType Xp1=last_generation.chromosomes[pidx_c1].genes;
 			GeneType Xp2=last_generation.chromosomes[pidx_c2].genes;
-			X.genes=crossover(Xp1,Xp2,[this](){return rnd01();});
-			if(rnd01()<=mutation_rate)
+			X.genes=crossover(Xp1,Xp2,[this](){return random01();});
+			if(random01()<=mutation_rate)
 			{
 				if(verbose)
 					cout<<"Mutation of chromosome "<<endl;
-				X.genes=mutate(X.genes,[this](){return rnd01();},shrink_scale);
+				double shrink_scale=get_shrink_scale(generation_step,[this](){return random01();});
+				X.genes=mutate(X.genes,[this](){return random01();},shrink_scale);
 			}
 			if(is_interactive())
 			{
-				if(eval_genes_IGA(X.genes,X.middle_costs,*p_new_generation))
+				if(eval_solution_IGA(X.genes,X.middle_costs,*p_new_generation))
 				{
 					p_new_generation->chromosomes.push_back(X);
 					successful=true;
@@ -1439,7 +1472,7 @@ protected:
 			}
 			else
 			{
-				if(eval_genes(X.genes,X.middle_costs))
+				if(eval_solution(X.genes,X.middle_costs))
 				{
 					if(index>=0)
 						p_new_generation->chromosomes[pop_previous_size+index]=X;
@@ -1635,7 +1668,6 @@ protected:
 		}
 
 	}
-
 };
 
 NS_EA_END
