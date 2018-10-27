@@ -45,7 +45,7 @@ Youtube video:
 
 ### Automatic code generator 
 
-For the comfort of the client, openGA assist provides an interface to generate an automatic code
+For the comfort of the client, openGA assist provides an interface to generate an automatic code. OpenGA assist is located at *assist/index.html*.
 
 ![openGA assist](https://user-images.githubusercontent.com/11730626/47605121-f276a980-da4d-11e8-9716-42ee1c27faee.png)
 
