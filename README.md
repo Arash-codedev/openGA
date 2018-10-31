@@ -7,7 +7,7 @@ A free C++ Genetic Algorithm library
 
 Download link:
 
-https://github.com/Arash-codedev/openGA/archive/v1.0.2.zip
+https://github.com/Arash-codedev/openGA/archive/v1.0.3.zip
 
 ### Documentation
 
