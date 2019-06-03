@@ -3,4 +3,5 @@ doc-diagram/
 doc-video/
 bin/*
 !bin/empty_file
-
+.idea/
+cmake-build-debug/
