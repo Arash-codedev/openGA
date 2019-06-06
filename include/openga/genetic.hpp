@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include "openga/stop-watch.hpp"
+
 #include <algorithm>
 #include <assert.h>
 #include <chrono>
@@ -166,30 +168,6 @@ namespace OpenGA {
         UserRequest
     };
 
-    class Chronometer {
-      protected:
-        typedef std::chrono::time_point<std::chrono::high_resolution_clock>
-            Timetype;
-        Timetype time_start, time_stop;
-        bool initialized;
-
-      public:
-        Chronometer() : initialized(false) {}
-
-        void tic() {
-            initialized = true;
-            time_start = std::chrono::high_resolution_clock::now();
-        }
-
-        double toc() {
-            if (!initialized)
-                throw std::runtime_error("Chronometer is not initialized!");
-            time_stop = std::chrono::high_resolution_clock::now();
-            return (double)std::chrono::duration<double>(time_stop - time_start)
-                .count();
-        }
-    };
-
     template <typename GeneType, typename MiddleCostType>
     class Genetic {
       private:
@@ -205,6 +183,7 @@ namespace OpenGA {
         unsigned int N_robj;
 
       public:
+        using ClockType = std::chrono::steady_clock;
         typedef ChromosomeType<GeneType, MiddleCostType> thisChromosomeType;
         typedef GenerationType<GeneType, MiddleCostType> thisGenerationType;
         typedef GenerationType_SO_abstract<GeneType, MiddleCostType>
@@ -345,8 +324,7 @@ namespace OpenGA {
                 std::cout << "**************************************"
                           << std::endl;
             }
-            Chronometer timer;
-            timer.tic();
+            StopWatch<ClockType> timer;
 
             thisGenerationType generation0;
             init_population(generation0);
@@ -383,7 +361,8 @@ namespace OpenGA {
                 extreme_objectives.clear();
                 scalarized_objectives_min.clear();
             }
-            generation0.exe_time = timer.toc();
+            generation0.exe_time =
+                static_cast<double>(timer.getDuration().count()) / 1000;
             if (!user_request_stop) {
                 generations_so_abs.push_back(thisGenSOAbs(generation0));
                 report_generation(generation0);
@@ -392,8 +371,7 @@ namespace OpenGA {
         }
 
         StopReason solve_next_generation() {
-            Chronometer timer;
-            timer.tic();
+            StopWatch<ClockType> timer;
             generation_step++;
             thisGenerationType new_generation;
             transfer(new_generation);
@@ -407,7 +385,8 @@ namespace OpenGA {
             rank_population(new_generation); // used for elite tranfre,
                                              // crossover and mutation
             finalize_generation(new_generation);
-            new_generation.exe_time = timer.toc();
+            new_generation.exe_time =
+                static_cast<double>(timer.getDuration().count()) / 1000;
 
             if (!user_request_stop) {
                 generations_so_abs.push_back(thisGenSOAbs(new_generation));

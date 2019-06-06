@@ -34,8 +34,9 @@ void init_genes(MySolution& p, const std::function<double(void)>& rnd01) {
     p.B = 255.0 * rnd01();
 }
 
-bool eval_solution_IGA(const MySolution& p, MyMiddleCost& c,
-                       const OpenGA::GenerationType<MySolution, MyMiddleCost>&) {
+bool eval_solution_IGA(
+    const MySolution& p, MyMiddleCost& c,
+    const OpenGA::GenerationType<MySolution, MyMiddleCost>&) {
     c.R = p.R;
     c.G = p.G;
     c.B = p.B;

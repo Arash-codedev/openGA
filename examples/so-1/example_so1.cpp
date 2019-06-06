@@ -113,8 +113,7 @@ int main() {
                 << "cost_best"
                 << "\n";
 
-    OpenGA::Chronometer timer;
-    timer.tic();
+    OpenGA::StopWatch<std::chrono::steady_clock> timer;
 
     GA_Type ga_obj;
     ga_obj.problem_mode = OpenGA::GA_MODE::SOGA;
@@ -135,8 +134,8 @@ int main() {
     ga_obj.mutation_rate = 0.4;
     ga_obj.solve();
 
-    std::cout << "The problem is optimized in " << timer.toc() << " seconds."
-              << std::endl;
+    std::cout << "The problem is optimized in " << timer.getDuration().count
+              << " milliseconds." << std::endl;
 
     output_file.close();
     return 0;
