@@ -117,7 +117,7 @@ int main() {
                 << "x_best4"
                 << "\n";
 
-    OpenGA::StopWatch timer;
+    OpenGA::StopWatch<std::chrono::steady_clock> timer;
 
     GA_Type ga_obj;
     ga_obj.problem_mode = OpenGA::GA_MODE::SOGA;

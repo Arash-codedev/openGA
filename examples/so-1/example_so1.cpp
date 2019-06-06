@@ -134,7 +134,7 @@ int main() {
     ga_obj.mutation_rate = 0.4;
     ga_obj.solve();
 
-    std::cout << "The problem is optimized in " << timer.getDuration().count
+    std::cout << "The problem is optimized in " << timer.getDuration().count()
               << " milliseconds." << std::endl;
 
     output_file.close();
