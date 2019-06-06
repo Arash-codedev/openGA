@@ -1,6 +1,1 @@
-doc/
-doc-diagram/
-doc-video/
-bin/*
-!bin/empty_file
-
+build
