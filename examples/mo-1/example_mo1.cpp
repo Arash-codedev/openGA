@@ -22,8 +22,8 @@ struct MyMiddleCost {
     double cost_B;
 };
 
-typedef EA::Genetic<MySolution, MyMiddleCost> GA_Type;
-typedef EA::GenerationType<MySolution, MyMiddleCost> Generation_Type;
+typedef OpenGA::Genetic<MySolution, MyMiddleCost> GA_Type;
+typedef OpenGA::GenerationType<MySolution, MyMiddleCost> Generation_Type;
 
 void init_genes(MySolution& p, const std::function<double(void)>& rnd01) {
     p.x = 10.0 * rnd01();
@@ -72,7 +72,7 @@ calculate_MO_objectives(const GA_Type::thisChromosomeType& X) {
 
 void MO_report_generation(
     int generation_number,
-    const EA::GenerationType<MySolution, MyMiddleCost>& last_generation,
+    const OpenGA::GenerationType<MySolution, MyMiddleCost>& last_generation,
     const std::vector<unsigned int>& pareto_front) {
     (void)last_generation;
 
@@ -110,11 +110,11 @@ void save_results(const GA_Type& ga_obj) {
 }
 
 int main() {
-    EA::Chronometer timer;
+    OpenGA::Chronometer timer;
     timer.tic();
 
     GA_Type ga_obj;
-    ga_obj.problem_mode = EA::GA_MODE::NSGA_III;
+    ga_obj.problem_mode = OpenGA::GA_MODE::NSGA_III;
     ga_obj.multi_threading = true;
     ga_obj.idle_delay_us = 1; // switch between threads quickly
     ga_obj.verbose = false;

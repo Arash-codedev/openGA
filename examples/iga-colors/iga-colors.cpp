@@ -25,8 +25,8 @@ struct MyMiddleCost {
     double cost_user_score;
 };
 
-typedef EA::Genetic<MySolution, MyMiddleCost> GA_Type;
-typedef EA::GenerationType<MySolution, MyMiddleCost> Generation_Type;
+typedef OpenGA::Genetic<MySolution, MyMiddleCost> GA_Type;
+typedef OpenGA::GenerationType<MySolution, MyMiddleCost> Generation_Type;
 
 void init_genes(MySolution& p, const std::function<double(void)>& rnd01) {
     p.R = 255.0 * rnd01();
@@ -35,7 +35,7 @@ void init_genes(MySolution& p, const std::function<double(void)>& rnd01) {
 }
 
 bool eval_solution_IGA(const MySolution& p, MyMiddleCost& c,
-                       const EA::GenerationType<MySolution, MyMiddleCost>&) {
+                       const OpenGA::GenerationType<MySolution, MyMiddleCost>&) {
     c.R = p.R;
     c.G = p.G;
     c.B = p.B;
@@ -94,7 +94,7 @@ std::ofstream output_file;
 
 void SO_report_generation(
     int generation_number,
-    const EA::GenerationType<MySolution, MyMiddleCost>& last_generation,
+    const OpenGA::GenerationType<MySolution, MyMiddleCost>& last_generation,
     const MySolution& best_genes) {
     std::cout << "Generation [" << generation_number << "], "
               << "Best=" << 100.0 - last_generation.best_total_cost << ", "
@@ -121,7 +121,7 @@ int main() {
     init_gui();
 
     GA_Type ga_obj;
-    ga_obj.problem_mode = EA::GA_MODE::IGA;
+    ga_obj.problem_mode = OpenGA::GA_MODE::IGA;
     ga_obj.verbose = false;
     ga_obj.population = 15;
     ga_obj.generation_max = 20;
