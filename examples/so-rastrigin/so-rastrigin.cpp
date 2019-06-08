@@ -38,7 +38,6 @@ void init_genes(MySolution& p,const std::function<double(void)> &rnd01)
 	for(int i=0;i<5;i++)
 		p.x.push_back(5.12*2.0*(rnd01()-0.5));
 }
-
 bool eval_solution(
 	const MySolution& p,
 	MyMiddleCost &c)
@@ -136,10 +135,26 @@ int main()
 	EA::Chronometer timer;
 	timer.tic();
 
+	MySolution x1,x2;
+	x1.x.push_back(0.1);
+	x1.x.push_back(0.1);
+	x1.x.push_back(0.1);
+	x1.x.push_back(0.1);
+	x1.x.push_back(0.1);
+    x2.x.push_back(0.2);
+    x2.x.push_back(0.2);
+    x2.x.push_back(0.1);
+    x2.x.push_back(0.2);
+    x2.x.push_back(0.1);
+    std::vector<MySolution> init_genes_manually;
+    init_genes_manually.push_back(x1);
+    init_genes_manually.push_back(x2);
+
 	GA_Type ga_obj;
+	ga_obj.SetInitPopulationManually(init_genes_manually);
 	ga_obj.problem_mode=EA::GA_MODE::SOGA;
 	ga_obj.multi_threading=true;
-	ga_obj.dynamic_threading=false;
+	ga_obj.dynamic_threading= false;
 	ga_obj.idle_delay_us=0; // switch between threads quickly
 	ga_obj.verbose=false;
 	ga_obj.population=10000;

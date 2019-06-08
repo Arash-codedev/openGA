@@ -252,6 +252,7 @@ private:
 	Matrix reference_vectors;
 	// double shrink_scale;
 	unsigned int N_robj;
+	StopReason stop_;
 public:
 
 	typedef ChromosomeType<GeneType,MiddleCostType> thisChromosomeType;
@@ -279,6 +280,7 @@ public:
 	int N_threads;
 	bool user_request_stop;
 	long idle_delay_us;
+	std::vector<thisChromosomeType> init_population_manually_;
 
 	function<void(thisGenerationType&)> calculate_IGA_total_fitness;
 	function<double(const thisChromosomeType&)> calculate_SO_total_fitness;
@@ -332,7 +334,8 @@ public:
 		SO_report_generation(nullptr),
 		MO_report_generation(nullptr),
 		custom_refresh(nullptr),
-		get_shrink_scale(default_shrink_scale)
+		get_shrink_scale(default_shrink_scale),
+        stop_(StopReason::Undefined)
 	{
 		// initialize the random number generator with time-dependent seed
 		uint64_t timeSeed = std::chrono::high_resolution_clock::now().time_since_epoch().count();
@@ -462,13 +465,26 @@ public:
 
 	StopReason solve()
 	{
-		StopReason stop=StopReason::Undefined;
 		solve_init();
-		while(stop==StopReason::Undefined)
-			stop=solve_next_generation();
-		show_stop_reason(stop);
-		return stop;
+		while(stop_==StopReason::Undefined)
+			stop_=solve_next_generation();
+		show_stop_reason(stop_);
+		return stop_;
 	}
+
+    GeneType GetBestGenes()
+    {
+	    if(stop_ == StopReason::Undefined)
+        {
+            std::cout<<"Don't have result now, please call this function after solve()"<<std::endl;
+            abort();
+        }
+        else
+        {
+            return last_generation.chromosomes[last_generation.best_chromosome_index];
+        }
+
+    }
 
 	std::string stop_reason_to_string(StopReason stop)
 	{
@@ -493,6 +509,18 @@ public:
 				return "Unknown reason";
 		}
 	}
+	/**
+	 * set the initial population that you think is closed to the best genes.
+	 * @param init_genes_manually object for storing the genes that you think is closed to the best genes.
+	 */
+    void SetInitPopulationManually(std::vector<GeneType> init_genes_manually)
+    {
+        init_population_manually_.resize(init_genes_manually.size(),thisChromosomeType());
+        for (int i = 0; i < init_genes_manually.size(); ++i) {
+            init_population_manually_[i].genes = init_genes_manually[i];
+        }
+
+    }
 
 protected:
 
@@ -1289,20 +1317,35 @@ protected:
 			std::this_thread::sleep_for(std::chrono::microseconds(idle_delay_us));
 	}
 
+
 	void init_population(thisGenerationType &generation0)
 	{
 		generation0.chromosomes.clear();
+
+
+		int index_start = 0;
+        if(init_population_manually_.size() > 0)
+        {
+            for (int i = 0; i < init_population_manually_.size(); ++i) {
+                if(eval_solution(init_population_manually_[i].genes,init_population_manually_[i].middle_costs))
+                {
+                    generation0.chromosomes.push_back(init_population_manually_[i]);
+                    index_start ++;
+                }
+            }
+        }
+
 
 		unsigned int total_attempts=0;
 		if(!multi_threading || N_threads==1 || is_interactive())
 		{
 			int dummy;
-			for(unsigned int i=0;i<population && !user_request_stop;i++)
+			for(unsigned int i=index_start;i<population && !user_request_stop;i++)
 				init_population_single(&generation0,-1,&total_attempts,&dummy);
 		}
 		else
 		{
-			for(unsigned int i=0;i<population;i++)
+			for(unsigned int i=index_start;i<population;i++)
 				generation0.chromosomes.push_back(thisChromosomeType());
 			vector<int> active_threads; // vector<bool> is broken
 			active_threads.assign(N_threads,0);
@@ -1318,7 +1361,7 @@ protected:
 
 			if(dynamic_threading)
 			{
-				unsigned int x_index=0;
+				unsigned int x_index=index_start;
 				while(x_index<population && !user_request_stop)
 				{
 					int free_thread=-1;
@@ -1351,9 +1394,9 @@ protected:
 			} // endif: dynamic threading
 			else
 			{// on static threading
-				int x_index_start=0;
+				int x_index_start=index_start;
 				int x_index_end=0;
-				int pop_chunk=population/N_threads;
+				int pop_chunk=(population-index_start)/N_threads;
 				pop_chunk=std::max(pop_chunk,1);
 				for(int i=0;i<N_threads;i++)
 				{

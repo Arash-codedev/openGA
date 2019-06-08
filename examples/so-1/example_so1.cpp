@@ -123,7 +123,7 @@ void SO_report_generation(
 
 int main()
 {
-	output_file.open("./bin/result_so1.txt");
+	output_file.open("../bin/result_so1.txt");
 	output_file<<"step"<<"\t"<<"x_best"<<"\t"<<"y_best"<<"\t"<<"cost_avg"<<"\t"<<"cost_best"<<"\n";
 
 	EA::Chronometer timer;
