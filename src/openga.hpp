@@ -562,7 +562,7 @@ protected:
 
 	void show_stop_reason(StopReason stop)
 	{
-		if(verbose)
+//		if(verbose)
 		{
 			cout<<"Stop criteria: ";
 			if(stop==StopReason::Undefined)

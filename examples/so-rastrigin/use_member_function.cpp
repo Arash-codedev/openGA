@@ -9,6 +9,7 @@
 #include <iomanip>
 #include "TdLibrary/loss_function.h"
 
+
 struct MySolution
 {
 	std::vector<double> x;
@@ -23,14 +24,22 @@ struct MySolution
 		return out.str();
 	}
 };
-
 struct MyMiddleCost
 {
 	// This is where the results of simulation
 	// is stored but not yet finalized.
 	double cost;
 };
-
+class CostCompute{
+public:
+    bool compute(const MySolution& p,MyMiddleCost &c){
+        constexpr double pi=3.141592653589793238;
+        c.cost=10*double(p.x.size());
+        for(unsigned long i=0;i<p.x.size();i++)
+            c.cost+=p.x[i]*p.x[i]-10.0*cos(2.0*pi*p.x[i]);
+        return true;
+    }
+};
 typedef EA::Genetic<MySolution,MyMiddleCost> GA_Type;
 typedef EA::GenerationType<MySolution,MyMiddleCost> Generation_Type;
 
@@ -39,16 +48,16 @@ void init_genes(MySolution& p,const std::function<double(void)> &rnd01)
 	for(int i=0;i<5;i++)
 		p.x.push_back(5.12*2.0*(rnd01()-0.5));
 }
-bool eval_solution(
-	const MySolution& p,
-	MyMiddleCost &c)
-{
-	constexpr double pi=3.141592653589793238;
-	c.cost=10*double(p.x.size());
-	for(unsigned long i=0;i<p.x.size();i++)
-		c.cost+=p.x[i]*p.x[i]-10.0*cos(2.0*pi*p.x[i]);
-	return true;
-}
+//bool eval_solution(
+//	const MySolution& p,
+//	MyMiddleCost &c)
+//{
+//	constexpr double pi=3.141592653589793238;
+//	c.cost=10*double(p.x.size());
+//	for(unsigned long i=0;i<p.x.size();i++)
+//		c.cost+=p.x[i]*p.x[i]-10.0*cos(2.0*pi*p.x[i]);
+//	return true;
+//}
 
 MySolution mutate(
 	const MySolution& X_base,
@@ -158,7 +167,10 @@ int main()
     std::vector<MySolution> init_genes_manually;
     init_genes_manually.push_back(x1);
     init_genes_manually.push_back(x2);
-
+    CostCompute computer;
+    using std::placeholders::_1;
+    using std::placeholders::_2;
+    std::function<bool(const MySolution&,MyMiddleCost&)> eval_solution = std::bind( &CostCompute::compute, computer, _1, _2);
 	GA_Type ga_obj;
 	ga_obj.SetInitPopulationManually(init_genes_manually);
 	ga_obj.problem_mode=EA::GA_MODE::SOGA;
