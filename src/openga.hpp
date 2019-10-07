@@ -1076,16 +1076,17 @@ protected:
 		for(int i=0;i<N;i++)
 			gen.sorted_indices.push_back(i);
 
-		if (use_quick_search) {
+		if (use_quick_search)
+		{
 			quicksort_indices_SO(gen.sorted_indices,gen,0,int(gen.sorted_indices.size())-1);
-		} else {
-			struct {
-				bool operator()(thisGenerationType &gen, int a, int b) const
+		}
+		else
+		{
+			std::sort(gen.sorted_indices.begin(), gen.sorted_indices.end(),
+				[&gen](int a,int b)->bool
 				{
 					return gen.chromosomes[a].total_cost < gen.chromosomes[b].total_cost;
-				}
-			} customLess;
-			std::sort(gen.sorted_indices.begin(), gen.sorted_indices.end(), bind(customLess, gen, std::placeholders::_1, std::placeholders::_2));
+				});
 		}
 
 		vector<int> ranks;
