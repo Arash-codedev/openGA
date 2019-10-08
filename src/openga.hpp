@@ -279,6 +279,7 @@ public:
 	int N_threads;
 	bool user_request_stop;
 	long idle_delay_us;
+	bool use_quick_search = true;
 
 	function<void(thisGenerationType&)> calculate_IGA_total_fitness;
 	function<double(const thisChromosomeType&)> calculate_SO_total_fitness;
@@ -1075,7 +1076,18 @@ protected:
 		for(int i=0;i<N;i++)
 			gen.sorted_indices.push_back(i);
 
-		quicksort_indices_SO(gen.sorted_indices,gen,0,int(gen.sorted_indices.size())-1);
+		if (use_quick_search)
+		{
+			quicksort_indices_SO(gen.sorted_indices,gen,0,int(gen.sorted_indices.size())-1);
+		}
+		else
+		{
+			std::sort(gen.sorted_indices.begin(), gen.sorted_indices.end(),
+				[&gen](int a,int b)->bool
+				{
+					return gen.chromosomes[a].total_cost < gen.chromosomes[b].total_cost;
+				});
+		}
 
 		vector<int> ranks;
 		ranks.assign(gen.chromosomes.size(),0);
