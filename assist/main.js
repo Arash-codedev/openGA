@@ -458,8 +458,6 @@ function update_codes()
 		code.push('	ga_obj.MO_report_generation=MO_report_generation;');
 	else
 		code.push('	ga_obj.SO_report_generation=SO_report_generation;');
-	code.push('	ga_obj.best_stall_max=10;');
-	code.push('	ga_obj.elite_count=10;');
 	code.push('	ga_obj.crossover_fraction=0.7;');
 	code.push('	ga_obj.mutation_rate=0.2;');
 	if(!multiobj)

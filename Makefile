@@ -10,7 +10,7 @@ CURRENT_FLAGS:= $(RELESE_FLAG)
 CURRENT_FLAGS += -std=c++11 -pthread -I./src -Wall -Wconversion -Wfatal-errors -Wextra
 BIN=./bin
 
-LIBS:= #-lboost_system -lboost_thread -lboost_chrono
+LIBS:= # empty
 G_LIBS:= -lGL -lGLU -lglut -lGLEW -lSDL -lSDL2main -lSDL2
 
 all:
