@@ -289,7 +289,7 @@ public:
 	function<void(GeneType&,const function<double(void)> &rnd01)> init_genes;
 	function<bool(const GeneType&,MiddleCostType&)> eval_solution;
 	function<bool(const GeneType&,MiddleCostType&,const thisGenerationType&)> eval_solution_IGA;
-	function<GeneType(const GeneType&,const function<double(void)> &rnd01,double shrink_scale)> mutate;
+	function<GeneType(const thisGenerationType& ,const GeneType&,const function<double(void)> &rnd01,double shrink_scale)> mutate;
 	function<GeneType(const GeneType&,const GeneType&,const function<double(void)> &rnd01)> crossover;
 	function<void(int,const thisGenerationType&,const GeneType&)> SO_report_generation;
 	function<void(int,const thisGenerationType&,const vector<unsigned int>&)> MO_report_generation;
@@ -1503,7 +1503,7 @@ protected:
 				if(verbose)
 					cout<<"Mutation of chromosome "<<endl;
 				double shrink_scale=get_shrink_scale(generation_step,[this](){return random01();});
-				X.genes=mutate(X.genes,[this](){return random01();},shrink_scale);
+				X.genes=mutate(last_generation,X.genes,[this](){return random01();},shrink_scale);
 			}
 			if(is_interactive())
 			{

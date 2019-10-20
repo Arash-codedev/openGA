@@ -51,10 +51,13 @@ bool eval_solution(
 }
 
 MySolution mutate(
+        const Generation_Type& last_generation,
 	const MySolution& X_base,
 	const std::function<double(void)> &rnd01,
 	double shrink_scale)
 {
+//    double fitness_best = last_generation.chromosomes[last_generation.best_chromosome_index].middle_costs.cost;
+//    std::cout<<"fitness_best = "<<fitness_best<<std::endl;
 	MySolution X_new;
 	bool out_of_range;
 	do{

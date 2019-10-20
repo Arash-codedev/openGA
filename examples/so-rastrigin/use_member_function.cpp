@@ -75,10 +75,14 @@ public:
             p.x.push_back(5.12*2.0*(rnd01()-0.5));
     }
     MySolution mutate(
+            const Generation_Type& last_generation,
             const MySolution& X_base,
             const std::function<double(void)> &rnd01,
             double shrink_scale)
     {
+//        MySolution X_best = last_generation.chromosomes[last_generation.best_chromosome_index].genes;
+//        double fitness_best = last_generation.chromosomes[last_generation.best_chromosome_index].middle_costs.cost;
+//        std::cout<<"fitness_best = "<<fitness_best<<std::endl;
         MySolution X_new;
         bool out_of_range;
         do{
@@ -94,9 +98,6 @@ public:
             }
         } while(out_of_range);
         return X_new;
-    }
-    void solve(){
-
     }
 
 };
@@ -186,11 +187,13 @@ int main()
             using std::placeholders::_1;
             using std::placeholders::_2;
             using std::placeholders::_3;
+            using std::placeholders::_4;
             std::function<bool(const MySolution&,MyMiddleCost&)> eval_solution = std::bind( &GeneticAlgorithm::compute, computer, _1, _2);
             std::function<void(MySolution& p,const std::function<double(void)> &rnd01)> init_genes = std::bind( &GeneticAlgorithm::init_genes, computer, _1, _2);
-            std::function<MySolution(const MySolution& X_base,
+            std::function<MySolution(const Generation_Type& last_generation,
+                                     const MySolution& X_base,
                                      const std::function<double(void)> &rnd01,
-                                     double shrink_scale)> mutate = std::bind( &GeneticAlgorithm::mutate, computer, _1, _2,_3);
+                                     double shrink_scale)> mutate = std::bind( &GeneticAlgorithm::mutate, computer, _1, _2,_3,_4);
             GA_Type ga_obj;
             ga_obj.SetInitPopulationManually(init_genes_manually);
             ga_obj.problem_mode=EA::GA_MODE::SOGA;
