@@ -102,7 +102,17 @@ double calculate_SO_total_fitness(const GA_Type::thisChromosomeType &X)
 //    return cost_robust;
 	return X.middle_costs.cost;
 }
+static double default_shrink_scale(int n_generation,const std::function<double(void)> &rnd01)
+{
 
+    double scale=(n_generation<=5?1.0:1.0/sqrt(n_generation-5+1));
+    if(rnd01()<0.4)
+        scale*=scale;
+    else if(rnd01()<0.1)
+        scale=1.0;
+    std::cout<<"my shrink_scale = "<<scale<<std::endl;
+    return scale;
+}
 std::ofstream output_file;
 
 void SO_report_generation(
@@ -177,6 +187,7 @@ int main()
 	ga_obj.mutate=mutate;
 	ga_obj.crossover=crossover;
 	ga_obj.SO_report_generation=SO_report_generation;
+	ga_obj.get_shrink_scale=default_shrink_scale;
 	ga_obj.best_stall_max=20;
 	ga_obj.average_stall_max=20;
 	ga_obj.tol_stall_best=1e-6;

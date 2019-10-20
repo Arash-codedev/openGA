@@ -46,7 +46,17 @@ typedef EA::GenerationType<MySolution,MyMiddleCost> Generation_Type;
 //}
 
 
+static double default_shrink_scale(int n_generation,const std::function<double(void)> &rnd01)
+{
 
+    double scale=(n_generation<=5?1.0:1.0/sqrt(n_generation-5+1));
+    if(rnd01()<0.4)
+        scale*=scale;
+    else if(rnd01()<0.1)
+        scale=1.0;
+    std::cout<<"my shrink_scale = "<<scale<<std::endl;
+    return scale;
+}
 MySolution crossover(
         const MySolution& X1,
         const MySolution& X2,
@@ -195,7 +205,7 @@ int main()
                                      const std::function<double(void)> &rnd01,
                                      double shrink_scale)> mutate = std::bind( &GeneticAlgorithm::mutate, computer, _1, _2,_3,_4);
             GA_Type ga_obj;
-            ga_obj.SetInitPopulationManually(init_genes_manually);
+//            ga_obj.SetInitPopulationManually(init_genes_manually);
             ga_obj.problem_mode=EA::GA_MODE::SOGA;
             ga_obj.multi_threading=false;
             ga_obj.dynamic_threading= false;
@@ -209,6 +219,7 @@ int main()
             ga_obj.mutate=mutate;
             ga_obj.crossover=crossover;
             ga_obj.SO_report_generation=SO_report_generation;
+            ga_obj.get_shrink_scale=default_shrink_scale;
             ga_obj.best_stall_max=20;
             ga_obj.average_stall_max=20;
             ga_obj.tol_stall_best=1e-6;
