@@ -49,9 +49,11 @@ struct GenerationType
 {
 	vector<ChromosomeType<GeneType,MiddleCostType>> chromosomes;
 	double best_total_cost= (std::numeric_limits<double>::infinity()); // for single objective
+	double worst_total_cost= (std::numeric_limits<double>::infinity()); // for single objective
 	double average_cost= 0.0; // for single objective
 
 	int best_chromosome_index=-1; // for single objective
+	int worst_chromosome_index=-1; // for single objective
 	vector<int> sorted_indices; // for single objective
 	vector<vector<unsigned int>> fronts; // for multi-objective
 	vector<double> selection_chance_cumulative;
@@ -603,6 +605,7 @@ protected:
 		if(is_single_objective())
 		{
 			double best=new_generation.chromosomes[0].total_cost;
+			double worst = new_generation.chromosomes[0].total_cost;
 			double sum=0;
 			new_generation.best_chromosome_index=0;
 
@@ -614,11 +617,21 @@ protected:
 				{
 					new_generation.best_chromosome_index=i;
 					best=current_cost;
+				} else{
+				    if(current_cost >= worst)
+                    {
+				        new_generation.worst_chromosome_index=i;
+				        worst=current_cost;
+                    }
 				}
 				best=std::min(best,current_cost);
+                worst=std::max(worst,current_cost);
 			}
 
 			new_generation.best_total_cost=best;
+//			std::cout<<"new_generation's best index = "<<new_generation.best_chromosome_index<<std::endl;
+//			std::cout<<"new generation's best genes = "<<new_generation.chromosomes[new_generation.best_chromosome_index].genes.to_string()<<std::endl;
+			new_generation.worst_total_cost=worst;
 			new_generation.average_cost=sum/double(new_generation.chromosomes.size());
 		}
 	}
@@ -1517,6 +1530,7 @@ protected:
 					cout<<"Mutation of chromosome "<<endl;
 				double shrink_scale=get_shrink_scale(generation_step,[this](){return random01();});
 				X.genes=mutate(last_generation,X.genes,[this](){return random01();},shrink_scale);
+//				std::cout<<"after mutation, X:"<<X.genes.to_string()<<std::endl;
 			}
 			if(is_interactive())
 			{
@@ -1564,7 +1578,11 @@ protected:
 		{
 			int dummy;
 			for(unsigned int i=0;i<N_add && !user_request_stop;i++)
-				crossover_and_mutation_single(&new_generation,pop_previous_size,-1,&dummy);
+            {
+                crossover_and_mutation_single(&new_generation,pop_previous_size,-1,&dummy);
+//                std::cout<<"new genes:"<<new_generation.chromosomes.back().genes.to_string()<<std::endl;
+            }
+
 		}
 		else
 		{
