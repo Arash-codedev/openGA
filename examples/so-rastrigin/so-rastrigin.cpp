@@ -50,85 +50,85 @@ bool eval_solution(
 	return true;
 }
 
-MySolution mutate(
-        const Generation_Type& last_generation,
-	const MySolution& X_base,
-	const std::function<double(void)> &rnd01,
-	double shrink_scale)
-{
-//    double fitness_best = last_generation.chromosomes[last_generation.best_chromosome_index].middle_costs.cost;
-//    std::cout<<"fitness_best = "<<fitness_best<<std::endl;
-	MySolution X_new;
-	bool out_of_range;
-	do{
-		out_of_range=false;
-		X_new=X_base;
-
-		for(unsigned long i=0;i<X_new.x.size();i++)
-		{
-			double mu=1.7*rnd01()*shrink_scale;
-			X_new.x[i]+=mu*(rnd01()-rnd01());
-			if(std::abs(X_new.x[i])>5.12)
-				out_of_range=true;
-		}
-	} while(out_of_range);
-	return X_new;
-}
-
 //MySolution mutate(
 //        const Generation_Type& last_generation,
-//        const MySolution& X_base,
-//        const std::function<double(void)> &rnd01,
-//        double shrink_scale)
+//	const MySolution& X_base,
+//	const std::function<double(void)> &rnd01,
+//	double shrink_scale)
 //{
-//
-//    MySolution X_best = last_generation.chromosomes[last_generation.best_chromosome_index].genes;
-//    double fitness_best = last_generation.best_total_cost;
-//    double fitness_worst = last_generation.worst_total_cost;
-////    std::cout<<"fitness_best  = "<<fitness_best<<"  "<<"fitness_worst = "<<fitness_worst<<std::endl;
-//    MyMiddleCost X_base_cost;
-//    eval_solution(X_base,X_base_cost);
-//    double fitness_X_base = X_base_cost.cost;
-////    std::cout<<"fitness_X_base = "<<fitness_X_base<<std::endl;
-//    double gma1;
-//    if(fitness_X_base >= fitness_worst)
-//        gma1 = 1;
-//    else
-//        gma1 = (fitness_X_base - fitness_best)/(fitness_worst - fitness_best);
-//    assert(gma1 <= 1);
-//    double gma2 = 1 - gma1;
+////    double fitness_best = last_generation.chromosomes[last_generation.best_chromosome_index].middle_costs.cost;
 ////    std::cout<<"fitness_best = "<<fitness_best<<std::endl;
-//    MySolution X_new;
-////    std::cout<<"mutation start"<<std::endl;
-////    std::cout<<"X_base:"<<X_base.to_string()<<std::endl;
-//    bool out_of_range;
-//    do{
-//        out_of_range=false;
-//        X_new=X_base;
-//        int index2 ;
-//        int index3;
-////        std::cout<<"random choose in "<<last_generation.chromosomes.size()<<std::endl;
+//	MySolution X_new;
+//	bool out_of_range;
+//	do{
+//		out_of_range=false;
+//		X_new=X_base;
 //
-//        do{
-//            index2 = int(td::UniformSampling<float>(0,last_generation.chromosomes.size()));
-//            index3 = int(td::UniformSampling<float>(0,last_generation.chromosomes.size()));
-//        }while (index2 == index3);
-////        std::cout<<"index2 = "<<index2<<"  "<<"index3 = "<<index3<<std::endl;
-//        MySolution X_r2 = last_generation.chromosomes[index2].genes;
-//        MySolution X_r3 = last_generation.chromosomes[index3].genes;
-////        std::cout<<"X_r2 : "<<X_r2.to_string()<<std::endl;
-////        std::cout<<"X_r3 : "<<X_r3.to_string()<<std::endl;
-//
-////        std::cout<<"generate new genes"<<std::endl;
-//        for(unsigned long i=0;i<X_new.x.size();i++)
-//        {
-//            X_new.x[i] = X_base.x[i] + shrink_scale * gma2 * (X_r2.x[i] - X_r3.x[i]) + shrink_scale * gma1 * (X_best.x[i] - X_base.x[i]);
-//            if(std::abs(X_new.x[i])>5.12)
-//                out_of_range=true;
-//        }
-//    } while(out_of_range);
-//    return X_new;
+//		for(unsigned long i=0;i<X_new.x.size();i++)
+//		{
+//			double mu=1.7*rnd01()*shrink_scale;
+//			X_new.x[i]+=mu*(rnd01()-rnd01());
+//			if(std::abs(X_new.x[i])>5.12)
+//				out_of_range=true;
+//		}
+//	} while(out_of_range);
+//	return X_new;
 //}
+
+MySolution mutate(
+        const Generation_Type& last_generation,
+        const MySolution& X_base,
+        const std::function<double(void)> &rnd01,
+        double shrink_scale)
+{
+
+    MySolution X_best = last_generation.chromosomes[last_generation.best_chromosome_index].genes;
+    double fitness_best = last_generation.best_total_cost;
+    double fitness_worst = last_generation.worst_total_cost;
+//    std::cout<<"fitness_best  = "<<fitness_best<<"  "<<"fitness_worst = "<<fitness_worst<<std::endl;
+    MyMiddleCost X_base_cost;
+    eval_solution(X_base,X_base_cost);
+    double fitness_X_base = X_base_cost.cost;
+//    std::cout<<"fitness_X_base = "<<fitness_X_base<<std::endl;
+    double gma1;
+    if(fitness_X_base >= fitness_worst)
+        gma1 = 1;
+    else
+        gma1 = (fitness_X_base - fitness_best)/(fitness_worst - fitness_best);
+    assert(gma1 <= 1);
+    double gma2 = 1 - gma1;
+//    std::cout<<"fitness_best = "<<fitness_best<<std::endl;
+    MySolution X_new;
+//    std::cout<<"mutation start"<<std::endl;
+//    std::cout<<"X_base:"<<X_base.to_string()<<std::endl;
+    bool out_of_range;
+    do{
+        out_of_range=false;
+        X_new=X_base;
+        int index2 ;
+        int index3;
+//        std::cout<<"random choose in "<<last_generation.chromosomes.size()<<std::endl;
+
+        do{
+            index2 = int(td::UniformSampling<float>(0,last_generation.chromosomes.size()));
+            index3 = int(td::UniformSampling<float>(0,last_generation.chromosomes.size()));
+        }while (index2 == index3);
+//        std::cout<<"index2 = "<<index2<<"  "<<"index3 = "<<index3<<std::endl;
+        MySolution X_r2 = last_generation.chromosomes[index2].genes;
+        MySolution X_r3 = last_generation.chromosomes[index3].genes;
+//        std::cout<<"X_r2 : "<<X_r2.to_string()<<std::endl;
+//        std::cout<<"X_r3 : "<<X_r3.to_string()<<std::endl;
+
+//        std::cout<<"generate new genes"<<std::endl;
+        for(unsigned long i=0;i<X_new.x.size();i++)
+        {
+            X_new.x[i] += (shrink_scale * gma2 * (X_r2.x[i] - X_r3.x[i]) + shrink_scale * gma1 * (X_best.x[i] - X_base.x[i]));
+            if(std::abs(X_new.x[i])>5.12)
+                out_of_range=true;
+        }
+    } while(out_of_range);
+    return X_new;
+}
 
 MySolution crossover(
 	const MySolution& X1,
@@ -157,9 +157,9 @@ double calculate_SO_total_fitness(const GA_Type::thisChromosomeType &X)
 //    return cost_robust;
 	return X.middle_costs.cost;
 }
-static double default_shrink_scale(int n_generation,const std::function<double(void)> &rnd01)
+double default_shrink_scale(int n_generation,const std::function<double(void)> &rnd01)
 {
-    double F0 = 0.6;
+    double F0 = 0.4;
     double lambda = exp(1-double(generation_max)/(generation_max+1-n_generation));
     double scale = F0 * pow(2,lambda);
 //    double scale=(n_generation<=5?1.0:1.0/sqrt(n_generation-5+1));
@@ -244,7 +244,7 @@ int main()
 	ga_obj.mutate=mutate;
 	ga_obj.crossover=crossover;
 	ga_obj.SO_report_generation=SO_report_generation;
-//	ga_obj.get_shrink_scale=default_shrink_scale;
+	ga_obj.get_shrink_scale=default_shrink_scale;
 	ga_obj.best_stall_max=20;
 	ga_obj.average_stall_max=20;
 	ga_obj.tol_stall_best=1e-6;

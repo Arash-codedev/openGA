@@ -1072,6 +1072,8 @@ protected:
 
 	void rank_population(thisGenerationType &gen)
 	{
+        if(verbose)
+            std::cout<<"rank population"<<std::endl;
 		if(user_request_stop)
 			return ;
 
@@ -1079,6 +1081,8 @@ protected:
 			rank_population_SO(gen);
 		else
 			rank_population_MO(gen);
+		if(verbose)
+		    std::cout<<"Done"<<std::endl;
 	}
 
 	void quicksort_indices_SO(vector<int> &array_indices,const thisGenerationType &gen,int left ,int right)
@@ -1524,6 +1528,8 @@ protected:
 			GeneType Xp1=last_generation.chromosomes[pidx_c1].genes;
 			GeneType Xp2=last_generation.chromosomes[pidx_c2].genes;
 			X.genes=crossover(Xp1,Xp2,[this](){return random01();});
+			if(verbose)
+			    std::cout<<"Done"<<std::endl;
 			if(random01()<=mutation_rate)
 			{
 				if(verbose)
@@ -1531,6 +1537,8 @@ protected:
 				double shrink_scale=get_shrink_scale(generation_step,[this](){return random01();});
 				X.genes=mutate(last_generation,X.genes,[this](){return random01();},shrink_scale);
 //				std::cout<<"after mutation, X:"<<X.genes.to_string()<<std::endl;
+                if(verbose)
+                    std::cout<<"Done"<<std::endl;
 			}
 			if(is_interactive())
 			{
@@ -1542,6 +1550,8 @@ protected:
 			}
 			else
 			{
+			    if(verbose)
+			        std::cout<<"eval solution"<<std::endl;
 				if(eval_solution(X.genes,X.middle_costs))
 				{
 					if(index>=0)
@@ -1549,7 +1559,14 @@ protected:
 					else
 						p_new_generation->chromosomes.push_back(X);
 					successful=true;
+
+
 				}
+                if(verbose)
+                    if(successful)
+                        std::cout<<"eval solution success"<<std::endl;
+                    else
+                        std::cout<<"eval solution fail"<<std::endl;
 			}
 		}
 		*active_thread=0; // false
@@ -1580,6 +1597,8 @@ protected:
 			for(unsigned int i=0;i<N_add && !user_request_stop;i++)
             {
                 crossover_and_mutation_single(&new_generation,pop_previous_size,-1,&dummy);
+                if(verbose)
+                    std::cout<<"crossover and mutation single done"<<std::endl;
 //                std::cout<<"new genes:"<<new_generation.chromosomes.back().genes.to_string()<<std::endl;
             }
 
@@ -1721,6 +1740,8 @@ protected:
 
 	void finalize_objectives(thisGenerationType &g)
 	{
+        if(verbose)
+            std::cout<<"finalize objectives"<<std::endl;
 		if(user_request_stop)
 			return ;
 
@@ -1740,6 +1761,8 @@ protected:
 			default:
 				throw runtime_error("Code should not reach here!");
 		}
+        if(verbose)
+            std::cout<<"Done"<<std::endl;
 
 	}
 };
