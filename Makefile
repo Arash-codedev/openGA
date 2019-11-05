@@ -19,6 +19,7 @@ all:
 	@echo ""
 	@echo make ex_so1
 	@echo make ex_so_rastrigin
+	@echo make ex_so_bind
 	@echo make ex_mo1
 	@echo make ex_mo_dtlz2
 	@echo make ex_iga_colors
@@ -33,6 +34,11 @@ ex_so_rastrigin:
 	$(CXX) $(CURRENT_FLAGS) examples/so-rastrigin/so-rastrigin.cpp -o $(BIN)/example_so-rastrigin $(LIBS)
 	@echo "-----------------------------------------------"
 	$(BIN)/example_so-rastrigin
+
+ex_so_bind:
+	$(CXX) $(CURRENT_FLAGS) examples/so-bind/example_bind.cpp -o $(BIN)/example_bind $(LIBS)
+	@echo "-----------------------------------------------"
+	$(BIN)/example_bind
 
 ex_mo1:
 	$(CXX) $(CURRENT_FLAGS) examples/mo-1/example_mo1.cpp -o $(BIN)/example_mo1 $(LIBS)
