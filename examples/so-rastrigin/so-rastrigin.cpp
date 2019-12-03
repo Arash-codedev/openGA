@@ -101,8 +101,13 @@ MySolution mutate(
     MySolution X_new;
 //    std::cout<<"mutation start"<<std::endl;
 //    std::cout<<"X_base:"<<X_base.to_string()<<std::endl;
+    int out_of_rang_num = -1;
+    double raw_gma2 = gma2;
     bool out_of_range;
     do{
+        double delta = M_PI_2 / 6;
+        if(out_of_rang_num >= 0)
+            gma2 = raw_gma2 * cos(out_of_rang_num * delta);
         out_of_range=false;
         X_new=X_base;
         int index2 ;
@@ -125,6 +130,12 @@ MySolution mutate(
             X_new.x[i] += (shrink_scale * gma2 * (X_r2.x[i] - X_r3.x[i]) + shrink_scale * gma1 * (X_best.x[i] - X_base.x[i]));
             if(std::abs(X_new.x[i])>5.12)
                 out_of_range=true;
+        }
+        out_of_rang_num ++;
+//                assert(out_of_rang_num < 7);
+        if(out_of_rang_num>6)
+        {
+            std::cerr<<"gma2 = "<<gma2<<", still out of range"<<std::endl;
         }
     } while(out_of_range);
     return X_new;

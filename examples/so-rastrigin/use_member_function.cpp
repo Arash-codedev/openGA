@@ -207,7 +207,7 @@ int main()
             GA_Type ga_obj;
 //            ga_obj.SetInitPopulationManually(init_genes_manually);
             ga_obj.problem_mode=EA::GA_MODE::SOGA;
-            ga_obj.multi_threading=false;
+            ga_obj.multi_threading=true;
             ga_obj.dynamic_threading= false;
             ga_obj.idle_delay_us=0; // switch between threads quickly
             ga_obj.verbose=false;
@@ -219,7 +219,7 @@ int main()
             ga_obj.mutate=mutate;
             ga_obj.crossover=crossover;
             ga_obj.SO_report_generation=SO_report_generation;
-            ga_obj.get_shrink_scale=default_shrink_scale;
+//            ga_obj.get_shrink_scale=default_shrink_scale;
             ga_obj.best_stall_max=20;
             ga_obj.average_stall_max=20;
             ga_obj.tol_stall_best=1e-6;
@@ -227,6 +227,7 @@ int main()
             ga_obj.elite_count=10;
             ga_obj.crossover_fraction=0.7;
             ga_obj.mutation_rate=0.1;
+//            ga_obj.N_threads = 3;
             ga_obj.solve();
 
             std::cout<<"The problem is optimized in "<<timer.toc()<<" seconds."<<std::endl;

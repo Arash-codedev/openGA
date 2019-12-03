@@ -350,6 +350,11 @@ public:
 			N_threads=8;
 	}
 
+
+    double get_best_total_cost(){
+        return last_generation.best_total_cost;
+	}
+
 	int get_number_reference_vectors(int N_objectives,int N_divisions)
 	{
 		int m=N_objectives-1;
@@ -605,7 +610,7 @@ protected:
 		if(is_single_objective())
 		{
 			double best=new_generation.chromosomes[0].total_cost;
-			double worst = new_generation.chromosomes[0].total_cost;
+			double worst = 0.0;
 			double sum=0;
 			new_generation.best_chromosome_index=0;
 
@@ -618,6 +623,8 @@ protected:
 					new_generation.best_chromosome_index=i;
 					best=current_cost;
 				} else{
+				    //do not take into account the inf cost
+//				    if(current_cost >= worst && std::isinf(current_cost) == 0)
 				    if(current_cost >= worst)
                     {
 				        new_generation.worst_chromosome_index=i;
