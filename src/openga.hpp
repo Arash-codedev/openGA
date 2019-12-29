@@ -279,7 +279,7 @@ public:
 	int N_threads;
 	bool user_request_stop;
 	long idle_delay_us;
-	bool use_quick_search = true;
+	bool use_quick_sort = true;
 
 	function<void(thisGenerationType&)> calculate_IGA_total_fitness;
 	function<double(const thisChromosomeType&)> calculate_SO_total_fitness;
@@ -1076,7 +1076,7 @@ protected:
 		for(int i=0;i<N;i++)
 			gen.sorted_indices.push_back(i);
 
-		if (use_quick_search)
+		if (use_quick_sort)
 		{
 			quicksort_indices_SO(gen.sorted_indices,gen,0,int(gen.sorted_indices.size())-1);
 		}
