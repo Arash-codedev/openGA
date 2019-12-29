@@ -2,7 +2,7 @@
 // Mozilla Public License Version 2.0.
 
 #include <string>
-#include "openga.hpp"
+#include "openGA.hpp"
 #include "gui.hpp"
 #include <fstream>
 

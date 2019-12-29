@@ -114,7 +114,7 @@ function update_codes()
 	code.push('#include <string>');
 	code.push('#include <iostream>');
 	code.push('#include <fstream>');
-	code.push('#include "openga.hpp"');
+	code.push('#include "openGA.hpp"');
 	code.push('');
 	code.push('using std::string;');
 	code.push('using std::cout;');

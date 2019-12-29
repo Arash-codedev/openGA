@@ -3,7 +3,7 @@
 
 #include <string>
 #include <vector>
-#include "openga.hpp"
+#include "openGA.hpp"
 #include <fstream>
 #include <sstream>
 #include <iomanip>

@@ -9,7 +9,7 @@
 #include <iostream>
 #include <fstream>
 #include <functional>
-#include "openga.hpp"
+#include "openGA.hpp"
 
 struct MySolution
 {

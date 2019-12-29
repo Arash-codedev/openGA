@@ -4,7 +4,7 @@
 #include <string>
 #include <iostream>
 #include <fstream>
-#include "openga.hpp"
+#include "openGA.hpp"
 
 struct MySolution
 {
