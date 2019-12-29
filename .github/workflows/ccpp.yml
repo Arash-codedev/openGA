@@ -1,0 +1,23 @@
+name: C/C++ CI
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v1
+    - name: ex_so1
+      run: make ex_so1
+    - name: ex_so_rastrigin
+      run: make ex_so_rastrigin
+    - name: ex_so_bind
+      run: make ex_so_bind
+    - name: ex_mo1
+      run: make ex_mo1
+    - name: ex_mo_dtlz2
+      run: make ex_mo_dtlz2
+    - name: ex_iga_colors
+      run: make ex_iga_colors
