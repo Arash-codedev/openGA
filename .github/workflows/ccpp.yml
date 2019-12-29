@@ -19,5 +19,3 @@ jobs:
       run: make ex_mo1
     - name: ex_mo_dtlz2
       run: make ex_mo_dtlz2
-    - name: ex_iga_colors
-      run: make ex_iga_colors
