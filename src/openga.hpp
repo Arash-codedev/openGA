@@ -200,6 +200,24 @@ inline double norm2(const vector<double> &x_vec)
 	return sqrt(sum);
 }
 
+inline int fast_combination_count(int N, int r)
+{
+	// if(N<r) // Commented to stop the warning  
+	// 	return 0;
+	if(r*2>N)
+		r=N-r;
+	if(r==0)
+		return 1;
+
+	int nCr=N;
+	for(int i=2;i<=r;++i)
+	{
+		nCr*=(N-i+1);
+		nCr/=i;
+	}
+	return nCr;
+}
+
 enum class StopReason
 {
 	Undefined,
@@ -346,17 +364,7 @@ public:
 
 	int get_number_reference_vectors(int N_objectives,int N_divisions)
 	{
-		int m=N_objectives-1;
-		int n=N_divisions;
-		if(m>n)
-			std::swap(m,n); // make sure m<=n
-		int result=1;
-		for(int k=1;k<=m;k++)
-		{
-			result*=m+n-k+1;
-			result/=k;
-		}
-		return result;
+		return fast_combination_count(N_objectives+N_divisions-1, N_divisions);
 	}
 
 	void calculate_N_robj(const thisGenerationType &g)
