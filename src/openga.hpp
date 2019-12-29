@@ -362,6 +362,11 @@ public:
 			N_threads=8;
 	}
 
+	Matrix get_reference_vectors()
+	{
+		return reference_vectors;
+	}
+
 	int get_number_reference_vectors(int N_objectives,int N_divisions)
 	{
 		return fast_combination_count(N_objectives+N_divisions-1, N_divisions);
