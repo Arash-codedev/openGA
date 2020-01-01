@@ -14,6 +14,8 @@
 #include <limits>
 #include <algorithm>
 #include <functional>
+#include <mutex>
+#include <atomic>
 
 #ifndef NS_EA_BEGIN
 #define NS_EA_BEGIN namespace EA {
@@ -22,11 +24,13 @@
 
 NS_EA_BEGIN;
 
-using std::vector;
+using std::atomic;
 using std::cout;
 using std::endl;
 using std::function;
 using std::runtime_error;
+using std::unique_ptr;
+using std::vector;
 
 enum class GA_MODE
 {
@@ -256,6 +260,8 @@ public:
 
 };
 
+std::mutex mtx_rand;
+
 template<typename GeneType,typename MiddleCostType>
 class Genetic
 {
@@ -268,10 +274,11 @@ private:
 	Matrix extreme_objectives;	// for multi-objective
 	vector<double> scalarized_objectives_min;	// for multi-objective
 	Matrix reference_vectors;
-	// double shrink_scale;
 	unsigned int N_robj;
+
 public:
 
+	typedef Genetic<GeneType,MiddleCostType> thisType;
 	typedef ChromosomeType<GeneType,MiddleCostType> thisChromosomeType;
 	typedef GenerationType<GeneType,MiddleCostType> thisGenerationType;
 	typedef GenerationType_SO_abstract<GeneType,MiddleCostType> thisGenSOAbs;
@@ -298,6 +305,7 @@ public:
 	bool user_request_stop;
 	long idle_delay_us;
 	bool use_quick_sort = true;
+	vector<GeneType> user_initial_solutions;
 
 	function<void(thisGenerationType&)> calculate_IGA_total_fitness;
 	function<double(const thisChromosomeType&)> calculate_SO_total_fitness;
@@ -408,6 +416,7 @@ public:
 
 		thisGenerationType generation0;
 		init_population(generation0);
+
 		generation_step=0;
 		finalize_objectives(generation0);
 
@@ -418,7 +427,7 @@ public:
 			{
 				reference_vector_divisions=2;
 				if(N_robj==1)
-					throw std::runtime_error("The length of objective vector is 1 in a multi-objective optimization");
+					throw runtime_error("The length of objective vector is 1 in a multi-objective optimization");
 				while(get_number_reference_vectors(N_robj,reference_vector_divisions+1)<=(int)population)
 					reference_vector_divisions++;
 				if(verbose)
@@ -443,6 +452,7 @@ public:
 			generations_so_abs.push_back(thisGenSOAbs(generation0));
 			report_generation(generation0);
 		}
+
 		last_generation=generation0;
 	}
 
@@ -522,6 +532,7 @@ protected:
 
 	double random01()
 	{
+		std::lock_guard<std::mutex> lock(mtx_rand); // prevent data race between threads
 		return unif_dist(rng);
 	}
 
@@ -1257,53 +1268,57 @@ protected:
 		}
 	}
 
-	void init_population_range(
-		thisGenerationType *p_generation0,
-		int index_begin,
-		int index_end,
-		unsigned int *attemps,
-		int *active_thread)
+	bool init_population_try(
+		thisGenerationType &generation0,
+		thisChromosomeType &X,
+		int index)
 	{
-		int dummy;
-		for(int i=index_begin;i<=index_end;i++)
-			init_population_single(p_generation0,i,attemps,&dummy);
-		*active_thread=0; // false
+		if(is_interactive())
+		{
+			if(eval_solution_IGA(X.genes,X.middle_costs,generation0))
+			{
+				// in IGA mode, code cannot run in parallel.
+				generation0.chromosomes.push_back(X);
+				return true;
+			}
+		}
+		else
+		{
+			if(eval_solution(X.genes,X.middle_costs))
+			{
+				if(index>=0)
+				{
+					generation0.chromosomes[index]=X;
+				}
+				else
+				{
+					generation0.chromosomes.push_back(X);
+				}
+				return true;
+			}
+		}
+		return false;
 	}
 
-	void init_population_single(
+	void init_population_range(
 		thisGenerationType *p_generation0,
-		int index,
+		int index_from,
+		int index_to,
 		unsigned int *attemps,
-		int *active_thread)
+		std::atomic<bool> &active_thread)
 	{
-		bool accepted=false;
-		while(!accepted)
+		for(int index=index_from;index<=index_to;index++)
 		{
-			thisChromosomeType X;
-			init_genes(X.genes,[this](){return random01();});
-			if(is_interactive())
+			bool accepted=false;
+			while(!accepted)
 			{
-				if(eval_solution_IGA(X.genes,X.middle_costs,*p_generation0))
-				{
-					// in IGA mode, code cannot run in parallel.
-					p_generation0->chromosomes.push_back(X);
-					accepted=true;
-				}
+				thisChromosomeType X;
+				init_genes(X.genes,[this](){return random01();});
+				accepted = init_population_try(*p_generation0,X,index);
+				(*attemps)++;
 			}
-			else
-			{
-				if(eval_solution(X.genes,X.middle_costs))
-				{
-					if(index>=0)
-						p_generation0->chromosomes[index]=X;
-					else
-						p_generation0->chromosomes.push_back(X);
-					accepted=true;
-				}
-			}
-			(*attemps)++;
+			active_thread=false;		
 		}
-		*active_thread=0; //false
 	}
 
 	void idle()
@@ -1314,115 +1329,231 @@ protected:
 			std::this_thread::sleep_for(std::chrono::microseconds(idle_delay_us));
 	}
 
+	/****************************************************
+	* Perform a given method action (population 
+	* initialization, or mutation/crossover) sequentially.
+	* The method is called one-by-one as much as the
+	* specified solutions are generated
+	****************************************************/
+	template <void (thisType::*action_function)(thisGenerationType *p_generation0,int index_from,int index_to,unsigned int *attemps,std::atomic<bool> &active_thread)>
+	void sequential_action(
+		thisGenerationType &generation,
+		unsigned int N_add, unsigned int &total_attempts)
+	{
+		std::atomic<bool> dummy;
+		for(unsigned int i=0;i<N_add && !user_request_stop;i++)
+			(this->*action_function)(&generation,-1,-1,&total_attempts,dummy);
+	}
+
+	/****************************************************
+	* Perform a given method action (population 
+	* initialization, or mutation/crossover) in a thread pool.
+	* The method is called by any available thread.
+	****************************************************/
+	template <void (thisType::*action_function)(thisGenerationType *p_generation0,int index_from,int index_to,unsigned int *attemps,std::atomic<bool> &active_thread)>
+	void dynamic_thread_action(
+		thisGenerationType &generation,
+		unsigned int N_add, unsigned int &total_attempts)
+	{
+		vector<atomic<bool>> active_threads(N_threads);
+		for (auto& at : active_threads)
+			std::atomic_init(&at, false);
+
+		vector<unsigned int> attempts;
+		attempts.assign(N_threads,0);
+
+		// Initialize the thread pool
+		vector<std::thread> thread_pool;
+		thread_pool.reserve(N_threads);
+		for(int i=0;i<N_threads;i++)
+		{
+			thread_pool.push_back(std::thread());
+		}
+		for(std::thread& th : thread_pool)
+		{
+			if(th.joinable())
+			{
+				th.join();
+			}
+		}
+
+		unsigned int offset = (unsigned int)generation.chromosomes.size();
+
+		// Pre-fill the new solutions
+		for(unsigned int i=0;i<N_add;i++)
+		{
+			generation.chromosomes.push_back(thisChromosomeType());
+		}
+
+		unsigned int x_index=0;
+		while(x_index<N_add && !user_request_stop)
+		{
+			int free_thread=-1;
+			for(int i=0;i<N_threads && free_thread<0;i++)
+				if(!active_threads[i])
+				{
+					free_thread=i;
+					if(thread_pool[free_thread].joinable())
+					{
+						thread_pool[free_thread].join();
+					}
+				}
+			if(free_thread>-1)
+			{
+				active_threads[free_thread]=true;
+				thread_pool[free_thread]=
+					std::thread(
+						action_function,
+						this,
+						&generation,
+						offset + int(x_index), /* from */
+						offset + int(x_index), /* to */
+						&attempts[free_thread],
+						std::ref(active_threads[free_thread])
+							);
+				x_index++;
+			}
+			else
+			{
+				idle();
+			}
+		}
+
+		bool all_tasks_finished;
+		do
+		{
+			all_tasks_finished=true;
+			for(int i=0;i<N_threads;i++)
+				if(active_threads[i])
+					all_tasks_finished=false;
+			if(!all_tasks_finished)
+				idle();
+		}while(!all_tasks_finished);
+
+		// wait for tasks to finish
+		for(std::thread& th : thread_pool)
+			if(th.joinable())
+				th.join();
+
+		for(unsigned int ac:attempts)
+			total_attempts+=ac;
+	}
+
+
+	/****************************************************
+	* Perform a given method action (population 
+	* initialization, or mutation/crossover) in a thread
+	* pool. The task is equally divided between threads.
+	* This approach has far less thread numbers and hence
+	* less far thread overhhead. However, as the thread
+	* allocation is not dynamic, the whole process waits 
+	* for the worst-case-scenario thread. 
+	****************************************************/
+	template <void (thisType::*action_function)(thisGenerationType *p_generation0,int index_from,int index_to,unsigned int *attemps,std::atomic<bool> &active_thread)>
+	void static_thread_action(
+		thisGenerationType &generation,
+		unsigned int N_add, unsigned int &total_attempts)
+	{
+		vector<atomic<bool>> active_threads(N_threads);
+		for (auto& at : active_threads)
+			std::atomic_init(&at, false);
+
+		vector<unsigned int> attempts;
+		attempts.assign(N_threads,0);
+
+		// Initialize the thread pool
+		vector<std::thread> thread_pool;
+		thread_pool.reserve(N_threads);
+		for(int i=0;i<N_threads;i++)
+			thread_pool.push_back(std::thread());
+		for(std::thread& th : thread_pool)
+			if(th.joinable())
+				th.join();
+
+		unsigned int offset = (unsigned int)generation.chromosomes.size();
+		// Pre-fill the new solutions
+		for(unsigned int i=0;i<N_add;i++)
+			generation.chromosomes.push_back(thisChromosomeType());
+
+		// Use determined thread pools
+		int x_index_start=offset;
+		int x_index_end=0;
+		int pop_chunk=std::max(int(N_add/N_threads),1);
+		for(int i=0;i<N_threads;i++)
+		{
+			if(i+1==N_threads) // last chunk
+				x_index_end=int(generation.chromosomes.size())-1;
+			else
+				x_index_end=std::min(x_index_start+pop_chunk-1,int(generation.chromosomes.size())-1);
+
+			if(x_index_end>=x_index_start)
+			{
+				active_threads[i]=true;
+				thread_pool[i]=
+				std::thread(
+					action_function,
+					this,
+					&generation,
+					x_index_start,
+					x_index_end,
+					&attempts[i],
+					std::ref(active_threads[i])
+						);
+			}
+			x_index_start=x_index_end+1;
+		}
+
+		bool all_tasks_finished;
+		do
+		{
+			all_tasks_finished=true;
+			for(int i=0;i<N_threads;i++)
+				if(active_threads[i])
+					all_tasks_finished=false;
+			if(!all_tasks_finished)
+				idle();
+		}while(!all_tasks_finished);
+
+		// wait for tasks to finish
+		for(std::thread& th : thread_pool)
+			if(th.joinable())
+				th.join();
+
+		for(unsigned int ac:attempts)
+			total_attempts+=ac;
+	}
+
+	/****************************************************
+	* This function generates the initial population
+	****************************************************/
 	void init_population(thisGenerationType &generation0)
 	{
 		generation0.chromosomes.clear();
+		generation0.chromosomes.reserve(population); // push_back can invalidate the vector
+
+		unsigned int new_solutions_offset = (unsigned int) generation0.chromosomes.size();
+		unsigned int N_add=(unsigned int) std::max(0, int(population)-int(new_solutions_offset));
 
 		unsigned int total_attempts=0;
 		if(!multi_threading || N_threads==1 || is_interactive())
 		{
-			int dummy;
-			for(unsigned int i=0;i<population && !user_request_stop;i++)
-				init_population_single(&generation0,-1,&total_attempts,&dummy);
+			sequential_action<&thisType::init_population_range>(
+				generation0,N_add,total_attempts);
 		}
 		else
 		{
-			for(unsigned int i=0;i<population;i++)
-				generation0.chromosomes.push_back(thisChromosomeType());
-			vector<int> active_threads; // vector<bool> is broken
-			active_threads.assign(N_threads,0);
-			vector<unsigned int> attempts;
-			attempts.assign(N_threads,0);
-
-			vector<std::thread> thread_pool;
-			for(int i=0;i<N_threads;i++)
-				thread_pool.push_back(std::thread());
-			for(std::thread& th : thread_pool)
-				if(th.joinable())
-					th.join();
-
 			if(dynamic_threading)
 			{
-				unsigned int x_index=0;
-				while(x_index<population && !user_request_stop)
-				{
-					int free_thread=-1;
-					for(int i=0;i<N_threads && free_thread<0;i++)
-					{
-						if(!active_threads[i])
-						{
-							free_thread=i;
-							if(thread_pool[free_thread].joinable())
-								thread_pool[free_thread].join();
-						}
-					}
-					if(free_thread>-1)
-					{
-						active_threads[free_thread]=1;
-						thread_pool[free_thread]=
-							std::thread(
-								&std::remove_reference<decltype(*this)>::type::init_population_single,
-								this,
-								&generation0,
-								int(x_index),
-								&attempts[free_thread],
-								&(active_threads[free_thread])
-									);
-						x_index++;
-					}
-					else
-						idle();
-				} // while
-			} // endif: dynamic threading
+				// Perform the tasks by any available thread
+				dynamic_thread_action<&thisType::init_population_range>(
+					generation0,N_add,total_attempts);
+			}
 			else
-			{// on static threading
-				int x_index_start=0;
-				int x_index_end=0;
-				int pop_chunk=population/N_threads;
-				pop_chunk=std::max(pop_chunk,1);
-				for(int i=0;i<N_threads;i++)
-				{
-					x_index_end=x_index_start+pop_chunk;
-					if(i+1==N_threads) // last chunk
-						x_index_end=population-1;
-					else
-						x_index_end=std::min(x_index_end,int(population)-1);
-
-					if(x_index_end>=x_index_start)
-					{
-						active_threads[i]=1;
-						thread_pool[i]=
-						std::thread(
-							&std::remove_reference<decltype(*this)>::type::init_population_range,
-							this,
-							&generation0,
-							x_index_start,
-							x_index_end,
-							&attempts[i],
-							&(active_threads[i])
-								);
-					}
-					x_index_start=x_index_end+1;
-				}
-			} // endif: static threading
-
-			bool all_tasks_finished;
-			do
 			{
-				all_tasks_finished=true;
-				for(int i=0;i<N_threads;i++)
-					if(active_threads[i])
-						all_tasks_finished=false;
-				if(!all_tasks_finished)
-					idle();
-			}while(!all_tasks_finished);
-			// wait for tasks to finish
-			for(std::thread& th : thread_pool)
-				if(th.joinable())
-					th.join();
-
-			for(unsigned int ac:attempts)
-				total_attempts+=ac;
+				// Divide the tasks between threads equally
+				static_thread_action<&thisType::init_population_range>(
+					generation0,N_add,total_attempts);
+			}
 		}
 
 		/////////////////////
@@ -1445,69 +1576,64 @@ protected:
 
 	void crossover_and_mutation_range(
 		thisGenerationType *p_new_generation,
-		unsigned int pop_previous_size,
 		int x_index_begin,
 		int x_index_end,
-		int *active_thread)
+		unsigned int *attemps,
+		std::atomic<bool> &active_thread)
 	{
-		int dummy;
-		for(int i=x_index_begin;i<=x_index_end;i++)
-			crossover_and_mutation_single(p_new_generation,pop_previous_size,i,&dummy);
-		*active_thread=0; // false
-	}
-
-	void crossover_and_mutation_single(
-		thisGenerationType *p_new_generation,
-		unsigned int pop_previous_size,
-		int index,
-		int *active_thread)
-	{
-
-		if(verbose)
-			cout<<"Action: crossover"<<endl;
-
-		bool successful=false;
-		while(!successful)
+		for(int index=x_index_begin;index<=x_index_end;index++)
 		{
-			thisChromosomeType X;
-
-			int pidx_c1=select_parent(last_generation);
-			int pidx_c2=select_parent(last_generation);
-			if(pidx_c1==pidx_c2)
-				continue ;
 			if(verbose)
-				cout<<"Crossover of chromosomes "<<pidx_c1<<","<<pidx_c2<<endl;
-			GeneType Xp1=last_generation.chromosomes[pidx_c1].genes;
-			GeneType Xp2=last_generation.chromosomes[pidx_c2].genes;
-			X.genes=crossover(Xp1,Xp2,[this](){return random01();});
-			if(random01()<=mutation_rate)
+				cout<<"Action: crossover"<<endl;
+
+			bool successful=false;
+			while(!successful)
 			{
+				thisChromosomeType X;
+
+				int pidx_c1=select_parent(last_generation);
+				int pidx_c2=select_parent(last_generation);
+				if(pidx_c1==pidx_c2)
+					continue ;
 				if(verbose)
-					cout<<"Mutation of chromosome "<<endl;
-				double shrink_scale=get_shrink_scale(generation_step,[this](){return random01();});
-				X.genes=mutate(X.genes,[this](){return random01();},shrink_scale);
-			}
-			if(is_interactive())
-			{
-				if(eval_solution_IGA(X.genes,X.middle_costs,*p_new_generation))
+					cout<<"Crossover of chromosomes "<<pidx_c1<<","<<pidx_c2<<endl;
+				GeneType Xp1=last_generation.chromosomes[pidx_c1].genes;
+				GeneType Xp2=last_generation.chromosomes[pidx_c2].genes;
+				X.genes=crossover(Xp1,Xp2,[this](){return random01();});
+				if(random01()<=mutation_rate)
 				{
-					p_new_generation->chromosomes.push_back(X);
-					successful=true;
+					if(verbose)
+						cout<<"Mutation of chromosome "<<endl;
+					double shrink_scale=get_shrink_scale(generation_step,[this](){return random01();});
+					X.genes=mutate(X.genes,[this](){return random01();},shrink_scale);
 				}
-			}
-			else
-			{
-				if(eval_solution(X.genes,X.middle_costs))
+				if(is_interactive())
 				{
-					if(index>=0)
-						p_new_generation->chromosomes[pop_previous_size+index]=X;
-					else
+					if(eval_solution_IGA(X.genes,X.middle_costs,*p_new_generation))
+					{
 						p_new_generation->chromosomes.push_back(X);
-					successful=true;
+						successful=true;
+					}
+					else
+						(*attemps)++;
+				}
+				else
+				{
+					if(eval_solution(X.genes,X.middle_costs))
+					{
+						if(index>=0)
+							p_new_generation->chromosomes[index]=X;
+						else
+							p_new_generation->chromosomes.push_back(X);
+						successful=true;
+					}
+					else
+						(*attemps)++;
 				}
 			}
 		}
-		*active_thread=0; // false
+
+		active_thread=false;
 	}
 
 	void crossover_and_mutation(thisGenerationType &new_generation)
@@ -1522,7 +1648,8 @@ protected:
 		if(generation_step<=0)
 			return ;
 		unsigned int N_add=(unsigned int)(std::round(double(population)*(crossover_fraction)));
-		unsigned int pop_previous_size=(unsigned int)new_generation.chromosomes.size();
+		unsigned int total_attempts=0;
+
 		if(is_interactive())
 		{
 			if(N_add+elite_count!=population)
@@ -1531,105 +1658,28 @@ protected:
 
 		if(!multi_threading || N_threads==1 || is_interactive())
 		{
-			int dummy;
-			for(unsigned int i=0;i<N_add && !user_request_stop;i++)
-				crossover_and_mutation_single(&new_generation,pop_previous_size,-1,&dummy);
+			sequential_action<&thisType::crossover_and_mutation_range>(
+				new_generation,N_add,total_attempts);
 		}
 		else
 		{
-			for(unsigned int i=0;i<N_add;i++)
-				new_generation.chromosomes.push_back(thisChromosomeType());
-			vector<int> active_threads; // vector<bool> is broken
-			active_threads.assign(N_threads,0);
-
-			vector<std::thread> thread_pool;
-			for(int i=0;i<N_threads;i++)
-				thread_pool.push_back(std::thread());
-			for(std::thread& th : thread_pool)
-				if(th.joinable())
-					th.join();
-
 			if(dynamic_threading)
 			{
-				unsigned int x_index=0;
-				while(x_index<N_add && !user_request_stop)
-				{
-					int free_thread=-1;
-					for(int i=0;i<N_threads && free_thread<0;i++)
-					{
-						if(!active_threads[i])
-						{
-							free_thread=i;
-							if(thread_pool[free_thread].joinable())
-								thread_pool[free_thread].join();
-						}
-					}
-					if(free_thread>-1)
-					{
-						active_threads[free_thread]=1;
-						thread_pool[free_thread]=
-							std::thread(
-								&std::remove_reference<decltype(*this)>::type::crossover_and_mutation_single,
-								this,
-								&new_generation,
-								pop_previous_size,
-								int(x_index),
-								&(active_threads[free_thread])
-									);
-						x_index++;
-					}
-					else
-						idle();
-				}
-			}// endif: dynamic threading
+				// Perform the tasks by any available thread
+				dynamic_thread_action<&thisType::crossover_and_mutation_range>(
+					new_generation,N_add,total_attempts);
+			}
 			else
-			{// on static threading
-				int x_index_start=0;
-				int x_index_end=0;
-				int pop_chunk=N_add/N_threads;
-				pop_chunk=std::max(pop_chunk,1);
-				for(int i=0;i<N_threads;i++)
-				{
-					x_index_end=x_index_start+pop_chunk;
-					if(i+1==N_threads) // last chunk
-						x_index_end=N_add-1;
-					else
-						x_index_end=std::min(x_index_end,int(N_add)-1);
-
-					if(x_index_end>=x_index_start)
-					{
-						active_threads[i]=1;
-
-						thread_pool[i]=
-							std::thread(
-								&std::remove_reference<decltype(*this)>::type::crossover_and_mutation_range,
-								this,
-								&new_generation,
-								pop_previous_size,
-								x_index_start,
-								x_index_end,
-								&(active_threads[i])
-									);
-					}
-					x_index_start=x_index_end+1;
-				}
-			}// endif: static threading
-
-			bool all_tasks_finished;
-			do
 			{
-				all_tasks_finished=true;
-				for(int i=0;i<N_threads;i++)
-					if(active_threads[i])
-						all_tasks_finished=false;
-				if(!all_tasks_finished)
-					idle();
-			}while(!all_tasks_finished);
+				// Divide the tasks between threads equally
+				static_thread_action<&thisType::crossover_and_mutation_range>(
+					new_generation,N_add,total_attempts);
+			}
+		}
 
-			// wait for tasks to finish
-			for(std::thread& th : thread_pool)
-				if(th.joinable())
-					th.join();
+		if(verbose)
+		{
+			cout<<"Mutations and crossovers of "<<N_add<<" solutions are calculated with "<<total_attempts<<" attemps."<<endl;
 		}
 	}
 
