@@ -24,3 +24,23 @@ jobs:
       run: cd ci-test-cases && make so-skim
     - name: CI skim test multi-objective 
       run: cd ci-test-cases && make mo-skim
+
+    - name: CI address sanitizer test single-objective 
+      run: cd ci-test-cases && make so-sanitizer-address
+    - name: CI address sanitizer test multi-objective 
+      run: cd ci-test-cases && make mo-sanitizer-address
+
+    - name: CI thread sanitizer test single-objective 
+      run: cd ci-test-cases && make so-sanitizer-thread
+    - name: CI thread sanitizer test multi-objective 
+      run: cd ci-test-cases && make mo-sanitizer-thread
+
+    - name: CI UB sanitizer test single-objective 
+      run: cd ci-test-cases && make so-sanitizer-ub
+    - name: CI UB sanitizer test multi-objective 
+      run: cd ci-test-cases && make mo-sanitizer-ub
+
+    - name: CI clang compatibility check single-objective 
+      run: cd ci-test-cases && make so-clang
+    - name: CI clang compatibility check multi-objective 
+      run: cd ci-test-cases && make mo-clang
