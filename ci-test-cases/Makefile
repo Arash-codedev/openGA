@@ -3,9 +3,9 @@
 
 CXX:=g++
 CFLAGS_R:=-O3 -s
-CFLAGS_D:=-Og -DNDEBUG
+CFLAGS_D:=-Og -DNDEBUG -D_GLIBCXX_SANITIZE_VECTOR
 CLANG_CFLAGS:=-std=c++11 -pthread -I../src -Wall -Wfatal-errors -Wextra
-CFLAGS:=-std=c++11 -pthread -I../src -Wall -Wconversion -Wfatal-errors -Wextra
+CFLAGS:=-std=c++11 -pthread -I../src -Wall -Wconversion -Werror -Wfatal-errors -Wextra
 SANITIZER_A:=-fsanitize=address
 SANITIZER_T:=-fsanitize=thread
 SANITIZER_UB:=-fsanitize=undefined
@@ -26,11 +26,11 @@ mo-skim:
 
 so-sanitizer-address:
 	$(CXX) $(CFLAGS_D) $(CFLAGS) $(SANITIZER_A) $(SRC_S) -o $(OUT) $(SANITIZER_A)
-	$(OUT)
+	env ASAN_OPTIONS="detect_stack_use_after_return=1" $(OUT)
 
 mo-sanitizer-address:
 	$(CXX) $(CFLAGS_D) $(CFLAGS) $(SANITIZER_A) $(SRC_M) -o $(OUT) $(SANITIZER_A)
-	$(OUT)
+	env ASAN_OPTIONS="detect_stack_use_after_return=1" $(OUT)
 
 so-sanitizer-thread:
 	$(CXX) $(CFLAGS_D) $(CFLAGS) $(SANITIZER_T) $(SRC_S) -o $(OUT) $(SANITIZER_T)

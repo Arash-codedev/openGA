@@ -20,6 +20,7 @@ all:
 	@echo make ex_so1
 	@echo make ex_so_rastrigin
 	@echo make ex_so_bind
+	@echo make ex_init_solutions
 	@echo make ex_mo1
 	@echo make ex_mo_dtlz2
 	@echo make ex_iga_colors
@@ -39,6 +40,11 @@ ex_so_bind:
 	$(CXX) $(CURRENT_FLAGS) examples/so-bind/example_bind.cpp -o $(BIN)/example_bind $(LIBS)
 	@echo "-----------------------------------------------"
 	$(BIN)/example_bind
+
+ex_init_solutions:
+	$(CXX) $(CURRENT_FLAGS) examples/so-init-solutions/example_so-init-solutions.cpp -o $(BIN)/example_so-init-solutions $(LIBS)
+	@echo "-----------------------------------------------"
+	$(BIN)/example_so-init-solutions
 
 ex_mo1:
 	$(CXX) $(CURRENT_FLAGS) examples/mo-1/example_mo1.cpp -o $(BIN)/example_mo1 $(LIBS)

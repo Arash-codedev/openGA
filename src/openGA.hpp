@@ -51,7 +51,9 @@ struct ChromosomeType
 template<typename GeneType,typename MiddleCostType>
 struct GenerationType
 {
-	vector<ChromosomeType<GeneType,MiddleCostType>> chromosomes;
+	typedef ChromosomeType<GeneType,MiddleCostType> thisChromosomeType;
+
+	vector<thisChromosomeType> chromosomes;
 	double best_total_cost= (std::numeric_limits<double>::infinity()); // for single objective
 	double average_cost= 0.0; // for single objective
 
@@ -1533,6 +1535,17 @@ protected:
 
 		unsigned int new_solutions_offset = (unsigned int) generation0.chromosomes.size();
 		unsigned int N_add=(unsigned int) std::max(0, int(population)-int(new_solutions_offset));
+
+		// Evaluate and add the user defined population
+		for(const GeneType &solution:user_initial_solutions)
+		{
+			thisChromosomeType X;
+			X.genes=solution;
+			bool accepted=init_population_try(generation0,X,-1);
+			(void) accepted; // unused parametre
+			if(generation0.chromosomes.size()>=population)
+				break;
+		}
 
 		unsigned int total_attempts=0;
 		if(!multi_threading || N_threads==1 || is_interactive())

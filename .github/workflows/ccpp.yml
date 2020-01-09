@@ -19,6 +19,8 @@ jobs:
       run: make ex_mo1
     - name: ex_mo_dtlz2
       run: make ex_mo_dtlz2
+    - name: ex_init_solutions
+      run: make ex_init_solutions
 
     - name: CI skim test single-objective 
       run: cd ci-test-cases && make so-skim
