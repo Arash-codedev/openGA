@@ -3,8 +3,11 @@ project(openGA CXX C)
 set(CMAKE_CXX_STANDARD 11)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
+if(Threads_FOUND)
+    MESSAGE(STATUS "Threads_LIBRARIES =  ${Threads_LIBRARIES}")
+endif()
 # Eigen
-include_directories("/usr/include/eigen3" )
+include_directories("/usr/local/include/eigen3" )
 #TdLib
 set(TdLib_DIR "/home/wang/CLionProjects/TdLibrary/install/lib/CMake/TdLib/")
 find_package(TdLib REQUIRED)

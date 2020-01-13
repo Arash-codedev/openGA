@@ -59,6 +59,7 @@ bool eval_solution(
 }
 
 MySolution mutate(
+        const Generation_Type& last_generation,
 	const MySolution& X_base,
 	const std::function<double(void)> &rnd01,
 	double shrink_scale)

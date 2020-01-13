@@ -7,7 +7,7 @@
 #include <fstream>
 #include <sstream>
 #include <iomanip>
-#include <TdLibrary/random_tool.hpp>
+#include <TdLibrary/tool/random_tool.hpp>
 int generation_max = 1000;
 struct MySolution
 {
@@ -243,11 +243,11 @@ int main()
 	GA_Type ga_obj;
 //	ga_obj.SetInitPopulationManually(init_genes_manually);
 	ga_obj.problem_mode=EA::GA_MODE::SOGA;
-	ga_obj.multi_threading=false;
+	ga_obj.multi_threading= false;
 	ga_obj.dynamic_threading= false;
 	ga_obj.idle_delay_us=0; // switch between threads quickly
 	ga_obj.verbose=false;
-	ga_obj.population=1000;
+	ga_obj.population=10000;
 	ga_obj.generation_max=generation_max;
 	ga_obj.calculate_SO_total_fitness=calculate_SO_total_fitness;
 	ga_obj.init_genes=init_genes;

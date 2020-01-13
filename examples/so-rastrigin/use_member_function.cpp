@@ -7,7 +7,7 @@
 #include <fstream>
 #include <sstream>
 #include <iomanip>
-#include "TdLibrary/loss_function.h"
+#include "TdLibrary/slam_tool/backend/loss_function.h"
 #include <omp.h>
 
 struct MySolution
