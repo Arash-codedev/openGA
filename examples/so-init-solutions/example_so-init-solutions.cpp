@@ -19,6 +19,7 @@ struct MySolution
 
 	MySolution()
 	{
+		// default constructor is a must
 	}
 
 	MySolution(std::vector<double> x):

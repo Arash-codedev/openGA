@@ -1,0 +1,122 @@
+language: cpp
+
+# compiler:
+#   - gcc
+#   - clang
+
+jobs:
+  include:
+
+    - stage: Linux normal operation
+      os: linux
+      dist: xenial
+      name: 'Example: single-objective'
+      script: make ex_so1
+    - name: 'Example: single-objective Rastrigin'
+      os: linux
+      dist: xenial
+      script: make ex_so_rastrigin
+    - name: 'Example: single-objective bind'
+      os: linux
+      dist: xenial
+      script: make ex_so_bind
+    - name: 'Example: multi-objective'
+      os: linux
+      dist: xenial
+      script: make ex_mo1
+    - name: 'Example: multi-objective DTLZ2'
+      os: linux
+      dist: xenial
+      script: make ex_mo_dtlz2
+    - name: 'Example: GA with solution initialization'
+      os: linux
+      dist: xenial
+      script: make ex_init_solutions
+
+    - stage: Windows
+      os: windows
+      name: 'Example: single-objective'
+      script: cmd.exe //C 'ci-test-cases\compile_cl.bat examples/so-1/example_so1.cpp .\bin\example_so1.exe'
+    - name: 'Example: single-objective Rastrigin'
+      os: windows
+      script: cmd.exe //C 'ci-test-cases\compile_cl.bat examples/so-rastrigin/so-rastrigin.cpp .\bin\so-rastrigin.exe'
+    - name: 'Example: single-objective bind'
+      os: windows
+      script: cmd.exe //C 'ci-test-cases\compile_cl.bat examples/so-bind/example_bind.cpp .\bin\example_bind.exe'
+    - name: 'Example: multi-objective'
+      os: windows
+      script: cmd.exe //C 'ci-test-cases\compile_cl.bat examples/mo-1/example_mo1.cpp .\bin\example_mo1.exe'
+    - name: 'Example: multi-objective DTLZ2'
+      os: windows
+      script: cmd.exe //C 'ci-test-cases\compile_cl.bat examples/mo-dtlz2/mo-dtlz2.cpp .\bin\mo-dtlz2.exe'
+    - name: 'Example: GA with solution initialization'
+      os: windows
+      script: cmd.exe //C 'ci-test-cases\compile_cl.bat examples/so-init-solutions/example_so-init-solutions.cpp .\bin\example_so-init-solutions.exe'
+
+    - stage: OSX normal operation
+      os: osx
+      osx_image: xcode8
+      name: 'Example: single-objective'
+      script: make ex_so1
+    - name: 'Example: single-objective Rastrigin'
+      os: osx
+      osx_image: xcode8
+      script: make ex_so_rastrigin
+    - name: 'Example: single-objective bind'
+      os: osx
+      osx_image: xcode8
+      script: make ex_so_bind
+    - name: 'Example: multi-objective'
+      os: osx
+      osx_image: xcode8
+      script: make ex_mo1
+    - name: 'Example: multi-objective DTLZ2'
+      os: osx
+      osx_image: xcode8
+      script: make ex_mo_dtlz2
+    - name: 'Example: GA with solution initialization'
+      os: osx
+      osx_image: xcode8
+      script: make ex_init_solutions
+
+    - stage: Linux regression test
+      os: linux
+      dist: xenial
+      name: Single-objective skim test
+      script: cd ci-test-cases && make so-skim
+    - name: Multi-objective skim test
+      os: linux
+      dist: xenial
+      script: cd ci-test-cases && make mo-skim
+    - name: Address sanitizer single-objective 
+      os: linux
+      dist: xenial
+      script: cd ci-test-cases && make so-sanitizer-address
+    - name: Address sanitizer multi-objective 
+      os: linux
+      dist: xenial
+      script: cd ci-test-cases && make mo-sanitizer-address
+    - name: Thread sanitizer test single-objective 
+      os: linux
+      dist: xenial
+      script: cd ci-test-cases && make so-sanitizer-thread
+    - name: Thread sanitizer test multi-objective 
+      os: linux
+      dist: xenial
+      script: cd ci-test-cases && make mo-sanitizer-thread
+    - name: UB sanitizer test single-objective 
+      os: linux
+      dist: xenial
+      script: cd ci-test-cases && make so-sanitizer-ub
+    - name: UB sanitizer test multi-objective 
+      os: linux
+      dist: xenial
+      script: cd ci-test-cases && make mo-sanitizer-ub
+    - name: Clang compatibility check single-objective 
+      os: linux
+      dist: xenial
+      script: cd ci-test-cases && make so-clang
+    - name: Clang compatibility check multi-objective 
+      os: linux
+      dist: xenial
+      script: cd ci-test-cases && make mo-clang

@@ -1,8 +1,8 @@
 // This library is free and distributed under
 // Mozilla Public License Version 2.0.
 
-#include <string>
 #include <iostream>
+#include <string>
 #include <fstream>
 #include "openGA.hpp"
 
