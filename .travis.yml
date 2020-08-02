@@ -1,9 +1,3 @@
-language: cpp
-
-# compiler:
-#   - gcc
-#   - clang
-
 jobs:
   include:
 
@@ -33,7 +27,7 @@ jobs:
       dist: xenial
       script: make ex_init_solutions
 
-    - stage: Windows
+    - stage: Windows normal operation
       os: windows
       name: 'Example: single-objective'
       script: cmd.exe //C 'ci-test-cases\compile_cl.bat examples/so-1/example_so1.cpp .\bin\example_so1.exe'
