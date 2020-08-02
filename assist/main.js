@@ -234,6 +234,7 @@ function update_codes()
 	code.push('	double shrink_scale)');
 	code.push('{');
 	code.push('	'+solution_name+' X_new;');
+	code.push('	const double mu = 0.2*shrink_scale; // mutation radius (adjustable)');
 	code.push('	bool in_range;');
 	code.push('	do{');
 	code.push('		in_range=true;');
@@ -249,7 +250,7 @@ function update_codes()
 		// 	var_min+='.0';
 		// if(Math.floor(Number(var_max))==Number(var_max))
 		// 	var_max+='.0';
-		code.push('		X_new.'+var_name+'+=0.2*(rnd01()-rnd01())*shrink_scale;');
+		code.push('		X_new.'+var_name+'+=mu*(rnd01()-rnd01());');
 		code.push('		in_range=in_range&&(X_new.'+var_name+'>='+var_min+' && X_new.'+var_name+'<'+var_max+');');
 	});
 	code.push('	} while(!in_range);');

@@ -65,10 +65,11 @@ MySolution mutate(
 {
 	MySolution X_new;
 	bool in_range_x,in_range_y;
+	const double mu=0.2*shrink_scale; // mutation radius
 	do{
 		X_new=X_base;
-		X_new.x+=0.2*(rnd01()-rnd01())*shrink_scale;
-		X_new.y+=0.2*(rnd01()-rnd01())*shrink_scale;
+		X_new.x+=mu*(rnd01()-rnd01());
+		X_new.y+=mu*(rnd01()-rnd01());
 		in_range_x= (X_new.x>=-10.0 && X_new.x<10.0);
 		in_range_y= (X_new.y>=-10.0 && X_new.y<10.0);
 	} while(!in_range_x || !in_range_y);

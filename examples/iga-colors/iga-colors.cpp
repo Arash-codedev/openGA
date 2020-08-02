@@ -55,7 +55,7 @@ MySolution mutate(
 	double shrink_scale)
 {
 	MySolution X_new;
-	(void) shrink_scale;
+	(void) shrink_scale; // not used
 	bool in_range_R,in_range_G,in_range_B;
 	do{
 		X_new=X_base;

@@ -78,7 +78,7 @@ MySolution mutate(
 		
 		for(unsigned long i=0;i<X_new.x.size();i++)
 		{
-			double mu=1.7*rnd01()*shrink_scale;
+			double mu=1.7*rnd01()*shrink_scale; // mutation radius
 			X_new.x[i]+=mu*(rnd01()-rnd01());
 			if(std::abs(X_new.x[i])>5.12)
 				out_of_range=true;
