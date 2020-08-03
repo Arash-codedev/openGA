@@ -7,7 +7,7 @@ A free C++ Genetic Algorithm library
 
 Download link:
 
-https://github.com/Arash-codedev/openGA/archive/v1.0.3.zip
+https://github.com/Arash-codedev/openGA/archive/v1.0.5.zip
 
 ### Documentation
 
@@ -35,13 +35,16 @@ If you have found this library useful for your work, please cite the following p
 
 This library is easy to use. Examples are provided in the document. The library is placed in a single file for comfort of the user. The standard C++ libraries are sufficent for this library and you do not need to install additional library for compiling.
 
-
 ### Demo
 
 Youtube video:
 
 [![Youtube video](https://img.youtube.com/vi/8T2Teo_Lwrc/0.jpg)](https://www.youtube.com/watch?v=8T2Teo_Lwrc)
 
+### Supported platforms
+- Linux
+- Windows
+- OSX
 
 ### Automatic code generator 
 
