@@ -20,6 +20,7 @@ all:
 	@echo make ex_so1
 	@echo make ex_so_rastrigin
 	@echo make ex_so_bind
+	@echo make ex_so_mulisource
 	@echo make ex_init_solutions
 	@echo make ex_mo1
 	@echo make ex_mo_dtlz2
@@ -40,6 +41,10 @@ ex_so_bind:
 	$(CXX) $(CURRENT_FLAGS) examples/so-bind/example_bind.cpp -o $(BIN)/example_bind $(LIBS)
 	@echo "-----------------------------------------------"
 	$(BIN)/example_bind
+
+ex_so_mulisource:
+	$(CXX) $(CURRENT_FLAGS) examples/so-multi-source/multi-source-part1.cpp examples/so-multi-source/multi-source-part2.cpp examples/so-multi-source/multi-source-part3.cpp -o $(BIN)/example_multi-source $(LIBS)
+	$(BIN)/example_multi-source
 
 ex_init_solutions:
 	$(CXX) $(CURRENT_FLAGS) examples/so-init-solutions/example_so-init-solutions.cpp -o $(BIN)/example_so-init-solutions $(LIBS)

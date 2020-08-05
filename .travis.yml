@@ -16,6 +16,10 @@ jobs:
       os: linux
       dist: xenial
       script: make ex_so_bind
+    - name: 'Example: single-objective with multiple linked sources'
+      os: linux
+      dist: xenial
+      script: make ex_so_mulisource
     - name: 'Example: multi-objective'
       os: linux
       dist: xenial
