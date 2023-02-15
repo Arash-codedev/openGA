@@ -486,8 +486,9 @@ public:
 			generations_so_abs.push_back(thisGenSOAbs(new_generation));
 			report_generation(new_generation);
 		}
-		last_generation=new_generation;
-
+		if (!new_generation.fronts.empty())
+                	last_generation = new_generation;
+		
 		return stop_critera();
 	}
 
