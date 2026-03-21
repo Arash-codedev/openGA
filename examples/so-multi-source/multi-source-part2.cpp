@@ -7,5 +7,5 @@
 
 void main2()
 {
-	run_test(false,false,0,"run-test-2");
+    run_test(false,false,0,"run-test-2");
 }
