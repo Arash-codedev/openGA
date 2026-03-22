@@ -1,54 +1,64 @@
-$(function() {
+document.addEventListener('DOMContentLoaded', function() { // Wait for DOM to be ready
     add_more_var();
     add_more_var();
     add_more_obj();
     update_codes();
+
+    // Listen to all inputs
+    const inputs = document.querySelectorAll('select, input');
+    inputs.forEach(input => {
+        input.addEventListener('change', update_codes);
+        if(input.tagName === 'INPUT') {
+            input.addEventListener('keyup', update_codes);
+        }
+    });
 });
 
-var var_count = 0;
-var obj_count = 0;
+let var_count = 0;
+let obj_count = 0;
 
 function add_more_var()
 {
-    var content = '';
+    let content = '';
     content += var_options();
     var_count++;
-    content += '<input type="text" onchange="update_codes()" class="var_name" placeholder="e.g. x" value="var' + var_count.toString() + '">';
-    content += '<input type="text" onchange="update_codes()" class="var_min" placeholder="min" value="0.0">';
-    content += '<input type="text" onchange="update_codes()" class="var_max" placeholder="max" value="10.0">';
-    content += '<button onclick="delete_var(this)">x</button>';
+    content += '<input type="text" onchange="update_codes()" onkeyup="update_codes()" class="var_name" placeholder="e.g. x" value="var' + var_count.toString() + '">';
+    content += '<input type="text" onchange="update_codes()" onkeyup="update_codes()" class="var_min" placeholder="min" value="0.0">';
+    content += '<input type="text" onchange="update_codes()" onkeyup="update_codes()" class="var_max" placeholder="max" value="10.0">';
+    content += '<button onclick="delete_var(this)" class="btn-delete">✖</button>';
     content = '<div class="var">' + content + '</div>';
-    $('#opt_var').append(content);
+    document.getElementById('opt_var').appendChild(htmlToElement(content));
     update_codes();
 }
 
 function add_more_obj()
 {
-    var content = '';
+    let content = '';
     obj_count++;
-    content += '<input class="obj_cell_name" onchange="update_codes()" type="text" placeholder="e.g. my_objective" value="objective' + obj_count.toString() + '">';
-    content += '= <input class="obj_cell_val" onchange="update_codes()" type="text" placeholder="e.g. x*y+tan(x)+sin(y)" value="' + random_eval() + '"><button onclick="delete_obj(this)">x</button>';
+    content += '<input class="obj_cell_name" onchange="update_codes()" onkeyup="update_codes()" type="text" placeholder="e.g. my_objective" value="objective' + obj_count.toString() + '">';
+    content += ' = <input class="obj_cell_val" onchange="update_codes()" onkeyup="update_codes()" type="text" placeholder="e.g. x*y+tan(x)+sin(y)" value="' + random_eval() + '">';
+    content += '<button onclick="delete_obj(this)" class="btn-delete">✖</button>';
     content = '<div class="obj">' + content + '</div>';
-    $('#opt_obj').append(content);
+    document.getElementById('opt_obj').appendChild(htmlToElement(content));
     update_codes();
 }
 
 function delete_var(button)
 {
-    $(button).parent().remove();
+    button.parentElement.remove();
     update_codes();
 }
 
 function delete_obj(button)
 {
-    $(button).parent().remove();
+    button.parentElement.remove();
     update_codes();
 }
 
 function var_options()
 {
-    var content = '';
-    content += '<select onchange="update_codes()">';
+    let content = '';
+    content += '<select onchange="update_codes()" class="var-type-select">';
     content += '  <option value="double" selected>double</option>';
     content += '  <option value="int">integer</option>';
     content += '  <option value="bool">boolean</option>';
@@ -64,31 +74,32 @@ function rand_range(min, max)
 
 function random_eval()
 {
-    var variables = [];
-    $('#opt_var').children().find('input.var_name').each(function(index, elem) {
-        var name = $(elem).val();
-        if(name)
-            variables.push($(elem).val());
+    const variables = [];
+    const varElements = document.querySelectorAll('#opt_var .var');
+    varElements.forEach(function(elem) {
+        const var_name = elem.querySelector('.var_name').value;
+        if(var_name)
+            variables.push(var_name);
     });
     if(variables.length < 2)
     {
         variables.push('x');
         variables.push('y');
     }
-    var functions = ['sin', 'cos', 'sqrt', 'log', 'exp'];
-    var phrases = '';
-    var phrase_count = rand_range(2, 3);
-    for(var i = 0; i < phrase_count; i++)
+    const functions = ['sin', 'cos', 'sqrt', 'log', 'exp'];
+    let phrases = '';
+    const phrase_count = rand_range(2, 3);
+    for(let i = 0; i < phrase_count; i++)
     {
         if(i > 0)
             phrases += '+';
-        var idx1 = rand_range(0, variables.length - 1);
-        var idx2 = idx1;
-        while(idx2 == idx1) /* make sure operands are different*/
+        let idx1 = rand_range(0, variables.length - 1);
+        let idx2 = idx1;
+        while(idx2 == idx1)
             idx2 = rand_range(0, variables.length - 1);
 
-        var opr1 = variables[idx1];
-        var opr2 = variables[idx2];
+        let opr1 = variables[idx1];
+        let opr2 = variables[idx2];
         if(Math.random() > 0.1)
             opr1 = functions[rand_range(0, functions.length - 1)] + '(' + opr1 + ')';
         if(Math.random() > 0.1)
@@ -98,16 +109,58 @@ function random_eval()
     return phrases;
 }
 
+function htmlToElement(html)
+{
+    const template = document.createElement('template');
+    html = html.trim();
+    template.innerHTML = html;
+    return template.content.firstChild;
+}
+
 function escapeHTML(unsafe_text)
 {
-    let div = document.createElement('div');
+    const div = document.createElement('div');
     div.innerText = unsafe_text;
     return div.innerHTML;
 }
 
+function copyCode()
+{
+    const codeElement = document.getElementById('code');
+    const codeText = codeElement.innerText || codeElement.textContent;
+
+    navigator.clipboard.writeText(codeText).then(function() {
+        const status = document.getElementById('copy-status');
+        status.textContent = '✓ Copied!';
+        status.classList.add('show');
+        setTimeout(function() {
+            status.classList.remove('show');
+        }, 2000);
+    }).catch(function() {
+        const status = document.getElementById('copy-status');
+        status.textContent = '✗ Failed to copy';
+        status.classList.add('show');
+        setTimeout(function() {
+            status.classList.remove('show');
+        }, 2000);
+    });
+}
+
+function getSelectValue(id)
+{
+    const select = document.getElementById(id);
+    return select ? select.value : null;
+}
+
+function getInputValue(id)
+{
+    const input = document.getElementById(id);
+    return input ? input.value : null;
+}
+
 function update_codes()
 {
-    var code = [];
+    const code = [];
     code.push('// main.cpp');
     code.push('');
     code.push('#include <string>');
@@ -119,31 +172,17 @@ function update_codes()
     code.push('using std::cout;');
     code.push('using std::endl;');
     code.push('');
-    var multiobj = false;
-    switch($('select[name=objnum]').val())
-    {
-        case "single":
-            multiobj = false;
-            break;
-        case "multiple":
-            multiobj = true;
-            break;
-        default:
-            multiobj = false;
-    }
-    var solution_name = $('input[name=solution_name]').val();
-    solution_name = solution_name || 'MySolution';
-    var eval_name = $('input[name=eval_name]').val();
-    eval_name = eval_name || 'MyMiddleCost';
+    const multiobj = (getSelectValue('objnum') === 'multiple');
+    const solution_name = getInputValue('solution_name') || 'MySolution';
+    const eval_name = getInputValue('eval_name') || 'MyMiddleCost';
     // solution
     code.push('struct ' + solution_name);
     code.push('{');
-    var var_list = [];
-    $('#opt_var').children().each(function(index, elem) {
-        var var_name = $(elem).find('input.var_name').val();
-        var var_type = $(elem).find('select').val();
-        var_name = var_name || '(unknown variable name)';
-        var_type = var_type || '(unknown variable type)';
+    const var_list = [];
+    const varElements = document.querySelectorAll('#opt_var .var');
+    varElements.forEach(function(elem) {
+        const var_name = elem.querySelector('.var_name').value || '(unknown variable name)';
+        const var_type = elem.querySelector('.var-type-select').value || '(unknown variable type)';
         var_list.push(var_name);
         code.push('    ' + var_type + ' ' + var_name + ';');
     });
@@ -151,10 +190,10 @@ function update_codes()
     code.push('    std::string to_string() const');
     code.push('    {');
     code.push('        return');
-    var first_var = true;
-    var_list.forEach(function(name) {
-        var prefix = first_var ? '            std::string("{")' : '            + ", ';
-        code.push(prefix + name + ':" + std::to_string(' + name + ')');
+    let first_var = true;
+    var_list.forEach(function(var_name) {
+        const prefix = first_var ? '            std::string("{")' : '            + ", ';
+        code.push(prefix + var_name + ':" + std::to_string(' + var_name + ')');
         first_var = false;
     });
     code.push('            + "}";');
@@ -166,10 +205,10 @@ function update_codes()
     code.push('{');
     code.push('    // This is where the results of simulation');
     code.push('    // is stored but not yet finalized.');
-    var obj_list = [];
-    $('#opt_obj').children().each(function(index, elem) {
-        var obj_name = $(elem).find('input.obj_cell_name').val();
-        obj_name = obj_name || '(unknown variable name)';
+    const obj_list = [];
+    const objElements = document.querySelectorAll('#opt_obj .obj');
+    objElements.forEach(function(elem) {
+        const obj_name = elem.querySelector('.obj_cell_name').value || '(unknown variable name)';
         obj_list.push(obj_name);
         code.push('    double ' + obj_name + ';');
     });
@@ -182,15 +221,12 @@ function update_codes()
     code.push('void init_genes(' + solution_name + '& p, const std::function<double(void)> &rnd01)');
     code.push('{');
     code.push('    // rnd01() gives a random number in 0~1');
-    $('#opt_var').children().each(function(index, elem) {
-        var var_name = $(elem).find('input.var_name').val();
-        var var_min = $(elem).find('input.var_min').val();
-        var var_max = $(elem).find('input.var_max').val();
-        var_name = var_name || '(unknown variable name)';
-        var_min = var_min || '0.0';
-        var_max = var_max || '10.0';
-        var diff = Number(var_max) - Number(var_min);
-        var diff_string = diff.toString();
+    varElements.forEach(function(elem) {
+        const var_name = elem.querySelector('.var_name').value || '(unknown variable name)';
+        const var_min = elem.querySelector('.var_min').value || '0.0';
+        const var_max = elem.querySelector('.var_max').value || '10.0';
+        const diff = Number(var_max) - Number(var_min);
+        const diff_string = diff.toString();
         if(diff < 0)
             code.push('    // warning: for variable ' + var_name + ' max<min');
         if(diff == 0)
@@ -204,20 +240,16 @@ function update_codes()
     code.push('    const ' + solution_name + '& p,');
     code.push('    ' + eval_name + ' &c)');
     code.push('{');
-    $('#opt_var').children().each(function(index, elem) {
-        var var_name = $(elem).find('input.var_name').val();
-        var var_type = $(elem).find('select').val();
-        var_name = var_name || '(unknown variable name)';
-        var_type = var_type || '(unknown variable type)';
+    varElements.forEach(function(elem) {
+        const var_name = elem.querySelector('.var_name').value || '(unknown variable name)';
+        const var_type = elem.querySelector('.var-type-select').value || '(unknown variable type)';
         var_list.push(var_name);
         code.push('    const ' + var_type + '& ' + var_name + ' = p.' + var_name + ';');
     });
     code.push('');
-    $('#opt_obj').children().each(function(index, elem) {
-        var obj_name = $(elem).find('input.obj_cell_name').val();
-        var obj_val = $(elem).find('input.obj_cell_val').val();
-        obj_name = obj_name || '(unknown variable name)';
-        obj_val = obj_val || '(unknown variable value)';
+    objElements.forEach(function(elem) {
+        const obj_name = elem.querySelector('.obj_cell_name').value || '(unknown variable name)';
+        const obj_val = elem.querySelector('.obj_cell_val').value || '(unknown variable value)';
         code.push('    c.' + obj_name + ' = ' + obj_val + ';');
     });
     code.push('    return true; // solution is accepted');
@@ -235,13 +267,10 @@ function update_codes()
     code.push('    do {');
     code.push('        in_range = true;');
     code.push('        X_new = X_base;');
-    $('#opt_var').children().each(function(index, elem) {
-        var var_name = $(elem).find('input.var_name').val();
-        var var_min = $(elem).find('input.var_min').val();
-        var var_max = $(elem).find('input.var_max').val();
-        var_name = var_name || '(unknown variable name)';
-        var_min = var_min || '0.0';
-        var_max = var_max || '10.0';
+    varElements.forEach(function(elem) {
+        const var_name = elem.querySelector('.var_name').value || '(unknown variable name)';
+        const var_min = elem.querySelector('.var_min').value || '0.0';
+        const var_max = elem.querySelector('.var_max').value || '10.0';
         code.push('        X_new.' + var_name + ' += mu * (rnd01() - rnd01());');
         code.push('        in_range = in_range && (X_new.' + var_name + ' >= ' + var_min + ' && X_new.' + var_name + ' < ' + var_max + ');');
     });
@@ -257,9 +286,8 @@ function update_codes()
     code.push('{');
     code.push('    ' + solution_name + ' X_new;');
     code.push('    double r;');
-    $('#opt_var').children().each(function(index, elem) {
-        var var_name = $(elem).find('input.var_name').val();
-        var_name = var_name || '(unknown variable name)';
+    varElements.forEach(function(elem) {
+        const var_name = elem.querySelector('.var_name').value || '(unknown variable name)';
         code.push('    r = rnd01();');
         code.push('    X_new.' + var_name + ' = r * X1.' + var_name + ' + (1.0 - r) * X2.' + var_name + ';');
     });
@@ -272,10 +300,9 @@ function update_codes()
         code.push('std::vector<double> calculate_MO_objectives(const GA_Type::thisChromosomeType &X)');
         code.push('{');
         code.push('    return {');
-        var array_objs = [];
-        $('#opt_obj').children().each(function(index, elem) {
-            var obj_name = $(elem).find('input.obj_cell_name').val();
-            obj_name = obj_name || '(unknown variable name)';
+        const array_objs = [];
+        objElements.forEach(function(elem) {
+            const obj_name = elem.querySelector('.obj_cell_name').value || '(unknown variable name)';
             array_objs.push('        X.middle_costs.' + obj_name);
         });
         code.push(array_objs.join(',\n'));
@@ -288,11 +315,8 @@ function update_codes()
         code.push('{');
         code.push('    // finalize the cost');
         code.push('    double final_cost = 0.0;');
-        $('#opt_obj').children().each(function(index, elem) {
-            var obj_name = $(elem).find('input.obj_cell_name').val();
-            var obj_val = $(elem).find('input.obj_cell_val').val();
-            obj_name = obj_name || '(unknown variable name)';
-            obj_val = obj_val || '(unknown variable value)';
+        objElements.forEach(function(elem) {
+            const obj_name = elem.querySelector('.obj_cell_name').value || '(unknown variable name)';
             code.push('    final_cost += X.middle_costs.' + obj_name + ';');
         });
         code.push('    return final_cost;');
@@ -328,9 +352,8 @@ function update_codes()
         code.push('    output_file.open("paretofront.txt");');
         code.push('    output_file');
         code.push('        << "N"');
-        $('#opt_obj').children().each(function(index, elem) {
-            var obj_name = $(elem).find('input.obj_cell_name').val();
-            obj_name = obj_name || '(unknown variable name)';
+        objElements.forEach(function(elem) {
+            const obj_name = elem.querySelector('.obj_cell_name').value || '(unknown variable name)';
             code.push('        << "\\t" << "' + obj_name + '"');
         });
         code.push('        << "\\t" << "solution" << "\\n";');
@@ -340,9 +363,8 @@ function update_codes()
         code.push('        const auto &X = ga_obj.last_generation.chromosomes[i];');
         code.push('        output_file');
         code.push('            << i << "\\t"');
-        $('#opt_obj').children().each(function(index, elem) {
-            var obj_name = $(elem).find('input.obj_cell_name').val();
-            obj_name = obj_name || '(unknown variable name)';
+        objElements.forEach(function(elem) {
+            const obj_name = elem.querySelector('.obj_cell_name').value || '(unknown variable name)';
             code.push('            << X.middle_costs.' + obj_name + ' << "\\t"');
         });
         code.push('            << X.genes.to_string() << "\\n";');
@@ -390,38 +412,23 @@ function update_codes()
         code.push('    ga_obj.problem_mode = EA::GA_MODE::NSGA_III;');
     else
         code.push('    ga_obj.problem_mode = EA::GA_MODE::SOGA;');
-    var heavyness = -1;
-    switch($('select[name=heavyness]').val())
-    {
-        case "light":
-            heavyness = 0;
-            break;
-        case "medium":
-            heavyness = 1;
-            break;
-        case "heavy":
-            heavyness = 2;
-            break;
-        default:
-            heavyness = -1;
-    }
-    var multi_threading = (heavyness >= 1 ? 'true' : 'false');
+    const heavyness = getSelectValue('heavyness');
+    const multi_threading = (heavyness !== 'light');
     code.push('    ga_obj.multi_threading = ' + multi_threading + ';');
-    if(heavyness == 1)
+    if(heavyness === 'medium')
         code.push('    ga_obj.idle_delay_us = 1; // switch between threads quickly');
-    if(heavyness == 2)
+    if(heavyness === 'heavy')
         code.push('    ga_obj.idle_delay_us = 10; // switch between threads quickly');
-    if(heavyness >= 1)
+    if(heavyness !== 'light')
     {
-        var dynamic_threading = (heavyness > 1 ? 'true' : 'false');
+        const dynamic_threading = (heavyness === 'heavy');
         code.push('    ga_obj.dynamic_threading = ' + dynamic_threading + ';');
     }
-    var verbose = ($('select[name=verbose]').val() === "true" ? 'true' : 'false');
+    const verbose = (getSelectValue('verbose') === "true");
     code.push('    ga_obj.verbose = ' + verbose + ';');
-    var population = -1;
-    switch($('select[name=population]').val())
+    var population;
+    switch(getSelectValue('population'))
     {
-
         case "small":
             population = 50;
             break;
@@ -432,7 +439,7 @@ function update_codes()
             population = 1000;
             break;
         default:
-            population = -1;
+            population = 200;
     }
     if(multiobj && population < 100)
         population = 100;
@@ -469,5 +476,6 @@ function update_codes()
     code.push('}');
     code.push('');
 
-    $('#code').html('<pre>' + escapeHTML(code.join('\n')) + '</pre>');
+    const codeElement = document.getElementById('code');
+    codeElement.innerHTML = '<pre>' + escapeHTML(code.join('\n')) + '</pre>';
 }

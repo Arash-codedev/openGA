@@ -1,122 +1,250 @@
 /* openGA style sheet */
 
-.title{
-    text-align: center;
+* {
+    box-sizing: border-box;
 }
 
-.wrapper{
-    width: 800px;
-    margin: 20px auto;
-}
-
-.content{
-    background-color: #f4fff6;
-    border: solid 1px #cccccc;
-    border-radius:5px;
-}
-
-.row{
-
-}
-
-.cell_label_l{
-    display: inline-block;
-    width: 500px;
-    text-align: right;
-}
-
-.short_text{
-    display: inline-block;
-    width: 150px;
-}
-
-.cell_input{
-    display: inline-block;
-}
-
-div.center{
-    text-align: center;
-}
-
-span.separator{
-    margin-top: 20px;
-    display: block
-}
-
-.content{
-    border: solid 1px #eeeeee;
-    border-radius:3px;
-    margin-top: 3px;
-}
-
-#opt_var{
-    border: solid 1px #dddddd;
-    border-radius:3px;
-    margin-top: 3px;
-    width: 500px;
-    margin-left: auto;
-    margin-right: auto;
-}
-
-.add_more{
-    width: 100px;
-    margin-top: 10px;
-    margin-left: auto;
-    margin-right: auto;
-}
-
-#opt_obj{
-    border: solid 1px #dddddd;
-    border-radius:3px;
-    margin-top: 3px;
-    width: 700px;
-    margin-left: auto;
-    margin-right: auto;
-}
-
-.obj_cell_name{
-    width: 150px;
-}
-
-.obj_cell_val{
-    width: 400px;
-}
-
-div.var{
-    /*nothing yet*/
-}
-
-div.obj{
-    /*nothing yet*/
-}
-
-.disclaimer{
-    background-color: #fdfef6;
-    border: solid 1px #eeeeee;
-    border-radius:5px;
-    margin: 20px;
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+    background: #f5f7fa;
+    margin: 0;
     padding: 20px;
 }
 
-#code{
-    background-color: #f6fefb;
-    border: solid 1px #eeeeee;
-    border-radius:5px;
+.wrapper {
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.content {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    padding: 25px 30px;
+}
+
+.row {
+    display: flex;
+    margin: 15px 0;
+    align-items: center;
+}
+
+
+.short_text, select {
+    padding: 8px 12px;
+    border: 1px solid #cbd5e0;
+    border-radius: 4px;
+    font-size: 14px;
+    background: white;
+}
+
+.short_text {
+    width: 220px;
+}
+
+select {
+    cursor: pointer;
+}
+
+.short_text:focus, select:focus {
+    outline: none;
+    border-color: #3498db;
+}
+.cell_label_l {
+    width: 300px;
+    text-align: right;
+    padding-right: 20px;
+    font-weight: 500;
+    color: #2c3e50;
+}
+
+.title {
+    text-align: center;
+    color: #2c3e50;
+    margin: 0 0 20px 0;
+}
+
+.center {
+    text-align: center;
+}
+
+.separator {
+    display: block;
+    height: 1px;
+    background: #e2e8f0;
+    margin: 20px 0;
+}
+
+
+
+.cell_input {
+    flex: 1;
+}
+
+#opt_var, #opt_obj {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 15px;
+    margin: 10px auto;
+}
+
+.var, .obj {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
     padding: 10px;
-    width: 750px;
-    margin-top: 10px;
-    margin-left: auto;
-    margin-right: auto;
+    margin-bottom: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
 }
 
-.var_name{
-    width: 200px;
+.var-type-select {
+    width: 85px;
 }
 
-.var_min{
-    width: 50px;
+.var_name {
+    width: 140px;
 }
 
-.var_max{
-    width: 50px;
+.var_min, .var_max {
+    width: 60px;
+    text-align: center;
+}
+
+.obj_cell_name {
+    width: 160px;
+}
+
+.obj_cell_val {
+    flex: 1;
+    min-width: 250px;
+    font-family: monospace;
+}
+
+.var_name, .var_min, .var_max, .obj_cell_name, .obj_cell_val {
+    padding: 6px 10px;
+    border: 1px solid #cbd5e0;
+    border-radius: 4px;
+    font-size: 13px;
+}
+
+.add_more {
+    text-align: center;
+    margin: 15px 0 5px 0;
+}
+
+.btn, .btn-copy {
+    border: none;
+    padding: 8px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    color: white;
+}
+
+.btn {
+    background: #3498db;
+}
+
+.btn:hover {
+    background: #2980b9;
+}
+
+.btn-copy {
+    background: #27ae60;
+}
+
+.btn-copy:hover {
+    background: #229954;
+}
+
+.btn-delete {
+    background: #e74c3c;
+    border: none;
+    width: 28px;
+    height: 28px;
+    border-radius: 4px;
+    cursor: pointer;
+    color: white;
+    font-weight: bold;
+}
+
+.btn-delete:hover {
+    background: #c0392b;
+}
+
+.code-header {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    margin: 15px 0 10px 0;
+    gap: 15px;
+}
+
+.copy-status {
+    font-size: 13px;
+    opacity: 0;
+    color: #27ae60;
+}
+
+.copy-status.show {
+    opacity: 1;
+}
+
+#code {
+    background: #1e1e1e;
+    border-radius: 6px;
+    overflow: auto;
+}
+
+#code pre {
+    margin: 0;
+    padding: 15px;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    color: #d4d4d4;
+}
+
+.disclaimer {
+    background: #fff9e6;
+    border-left: 3px solid #f39c12;
+    padding: 12px 18px;
+    margin: 20px 0;
+    font-size: 12px;
+    color: #666;
+}
+
+@media (max-width: 768px) {
+    .row {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .cell_label_l {
+        width: 100%;
+        text-align: left;
+        margin-bottom: 8px;
+    }
+    
+    .cell_input {
+        width: 100%;
+    }
+    
+    .short_text, select {
+        width: 100%;
+    }
+    
+    .var, .obj {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .obj_cell_val {
+        width: 100%;
+    }
 }

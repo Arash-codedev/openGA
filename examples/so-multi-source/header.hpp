@@ -21,10 +21,10 @@ struct MyMiddleCost
     double cost;
 };
 
-typedef EA::Genetic<MySolution,MyMiddleCost> GA_Type;
-typedef EA::GenerationType<MySolution,MyMiddleCost> Generation_Type;
+typedef EA::Genetic<MySolution, MyMiddleCost> GA_Type;
+typedef EA::GenerationType<MySolution, MyMiddleCost> Generation_Type;
 
-void init_genes(MySolution& p,const std::function<double(void)> &rnd01);
+void init_genes(MySolution& p, const std::function<double(void)> &rnd01);
 
 bool eval_solution(
     const MySolution& p,
@@ -44,7 +44,7 @@ double calculate_SO_total_fitness(const GA_Type::thisChromosomeType &X);
 
 void SO_report_generation(
     int generation_number,
-    const EA::GenerationType<MySolution,MyMiddleCost> &last_generation,
+    const EA::GenerationType<MySolution, MyMiddleCost> &last_generation,
     const MySolution& best_genes);
 
 struct TestResult
